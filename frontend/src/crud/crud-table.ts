@@ -6,6 +6,7 @@ import { Column } from './types';
 import { SessionStatus } from '../lib/session';
 import { icon } from '../lib/icons';
 import { ui } from '../lib/ui';
+import { I18n } from '../lib/i18n';
 
 export abstract class CrudTable<T> extends LitElement {
   abstract prefix: string;
@@ -22,6 +23,13 @@ export abstract class CrudTable<T> extends LitElement {
   @state() private page = 0;
   @property({ type: Number }) pageSize = 10;
   private timeoutId?: number;
+
+  /** Privilege prefix (ACTION_PREFIX). Defaults to the module prefix; override it when sharing privileges with another module. */
+  get permission(): string { return this.prefix; }
+
+  /** Per-row actions: override to hide edit/delete on certain records. */
+  canEditRow(_item: T): boolean { return true; }
+  canDeleteRow(_item: T): boolean { return true; }
 
   createRenderRoot() { return this; }
 
@@ -86,9 +94,9 @@ export abstract class CrudTable<T> extends LitElement {
 
   render(): TemplateResult {
     const session = SessionStatus.getInstance();
-    const canEdit   = this.canEdit   && session.allowed(this.prefix, 'edit');
-    const canDelete = this.canDelete && session.allowed(this.prefix, 'delete');
-    const canDetail = this.canDetail && session.allowed(this.prefix, 'view');
+    const canEdit   = this.canEdit   && session.allowed(this.permission, 'edit');
+    const canDelete = this.canDelete && session.allowed(this.permission, 'delete');
+    const canDetail = this.canDetail && session.allowed(this.permission, 'view');
     const hasActions = canEdit || canDelete || canDetail;
 
     let body: TemplateResult;
@@ -97,19 +105,19 @@ export abstract class CrudTable<T> extends LitElement {
     if (this.page >= pages) this.page = pages - 1;
     const visible = rows.slice(this.page * this.pageSize, (this.page + 1) * this.pageSize);
 
-    if (this.error) body = this._state('Error al cargar los datos.', 'text-red-600', 'x');
+    if (this.error) body = this._state(I18n.t('crud.load_error'), 'text-red-600', 'x');
     else if (this.items === null) body = html`
       <div class="flex items-center justify-center gap-3 px-6 py-14 text-slate-500">
-        <span class="size-5 animate-spin rounded-full border-2 border-slate-300 border-t-brand-600"></span>Cargando…
+        <span class="size-5 animate-spin rounded-full border-2 border-slate-300 border-t-brand-600"></span>${I18n.t('common.loading')}
       </div>`;
-    else if (!rows.length) body = this._state(this.query ? 'Sin coincidencias para tu búsqueda.' : 'Aún no hay registros.');
+    else if (!rows.length) body = this._state(this.query ? I18n.t('crud.no_matches') : I18n.t('crud.empty'));
     else body = html`
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm">
           <thead class="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
               ${this.columns().map(c => html`<th class="px-4 py-3">${c.label}</th>`)}
-              ${hasActions ? html`<th class="px-4 py-3 text-right">Acciones</th>` : ''}
+              ${hasActions ? html`<th class="px-4 py-3 text-right">${I18n.t('common.actions')}</th>` : ''}
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -118,20 +126,20 @@ export abstract class CrudTable<T> extends LitElement {
                 ${this.columns().map(c => html`<td class="px-4 py-3 text-slate-700">${this._renderCell(item, c)}</td>`)}
                 ${hasActions ? html`
                   <td class="px-4 py-2 text-right whitespace-nowrap">
-                    ${canDetail ? this._actionBtn('eye', 'Ver', 'detail', item) : ''}
-                    ${canEdit   ? this._actionBtn('pencil', 'Editar', 'edit', item) : ''}
-                    ${canDelete ? this._actionBtn('trash', 'Eliminar', 'delete', item, 'hover:bg-red-50 hover:text-red-600') : ''}
+                    ${canDetail ? this._actionBtn('eye', I18n.t('common.view'), 'detail', item) : ''}
+                    ${canEdit && this.canEditRow(item) ? this._actionBtn('pencil', I18n.t('common.edit'), 'edit', item) : ''}
+                    ${canDelete && this.canDeleteRow(item) ? this._actionBtn('trash', I18n.t('common.delete'), 'delete', item, 'hover:bg-red-50 hover:text-red-600') : ''}
                   </td>` : ''}
               </tr>`)}
           </tbody>
         </table>
       </div>
       <div class="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-xs text-slate-500">
-        <span>${rows.length} registro${rows.length === 1 ? '' : 's'}</span>
+        <span>${I18n.tn('crud.records', rows.length)}</span>
         ${pages > 1 ? html`
           <div class="flex items-center gap-1">
             <button class=${ui.iconBtn} ?disabled=${this.page === 0} @click=${() => { this.page--; }}>${icon('chevron-left', 'size-4')}</button>
-            <span class="px-2">Página ${this.page + 1} de ${pages}</span>
+            <span class="px-2">${I18n.t('crud.page', this.page + 1, pages)}</span>
             <button class=${ui.iconBtn} ?disabled=${this.page >= pages - 1} @click=${() => { this.page++; }}>${icon('chevron-right', 'size-4')}</button>
           </div>` : ''}
       </div>`;
@@ -141,7 +149,7 @@ export abstract class CrudTable<T> extends LitElement {
         <div class="border-b border-slate-200 p-4">
           <div class="relative max-w-xs">
             <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">${icon('search', 'size-4')}</span>
-            <input type="search" class="${ui.input} pl-9" placeholder="Buscar…" .value=${this.query}
+            <input type="search" class="${ui.input} pl-9" placeholder="${I18n.t('common.search_placeholder')}" .value=${this.query}
                    @input=${(e: Event) => { this.query = (e.target as HTMLInputElement).value; this.page = 0; }} />
           </div>
         </div>

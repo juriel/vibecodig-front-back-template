@@ -13,5 +13,5 @@ class UserCreateDTO(BaseModel):
 class UserUpdateDTO(BaseModel):
     name: str = Field(min_length=1, max_length=128)
     email: Optional[str] = Field(default=None, max_length=64)
-    password: Optional[str] = Field(default=None, max_length=128)  # vacío/None = no cambiar
+    password: Optional[str] = Field(default=None, max_length=128)  # empty/None = unchanged
     profile_ids: List[int] = []

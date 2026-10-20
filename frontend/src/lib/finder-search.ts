@@ -3,25 +3,26 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { MessageBroker } from '../crud/broker';
 import { ui, btn } from './ui';
 import { icon } from './icons';
+import { I18n } from './i18n';
 import { CrudService } from '../crud/crud-service';
 
 /**
- * Autocompletar con debounce (300 ms) para elegir una entidad relacionada (FK).
- * Guarda la clave en un <input type="hidden" name="<name>"> y muestra el texto en el input visible.
- * Al elegir emite el evento DOM `<name>-result-selected` (detail = item) y lo publica en MessageBroker.
+ * Autocomplete with debounce (300 ms) to pick a related entity (FK).
+ * Stores the key in an <input type="hidden" name="<name>"> and shows the text in the visible input.
+ * On selection it emits the DOM event `<name>-result-selected` (detail = item) and publishes it on the MessageBroker.
  *
- *   const f = new FinderSearch<ClienteDTO>();
- *   Object.assign(f, { name: 'cliente_id', service: new ClienteService(), primaryKey: 'id', displayField: 'nombre' });
+ *   const f = new FinderSearch<CustomerDTO>();
+ *   Object.assign(f, { name: 'customer_id', service: new CustomerService(), primaryKey: 'id', displayField: 'name' });
  *
- * Búsqueda: `search(q)` si se define (p. ej. endpoint con filtro); si no, `service.findAll()` filtrado en cliente.
+ * Search: `search(q)` if defined (e.g. an endpoint with a filter); otherwise `service.findAll()` filtered on the client.
  */
 @customElement('finder-search')
 export class FinderSearch<T extends object = any> extends LitElement {
   @property() name = '';
-  @property() placeholder = 'Buscar';
+  @property() placeholder = I18n.t('common.search');
   @property() primaryKey!: keyof T;
   @property() displayField!: keyof T;
-  /** Texto del botón extra (aparece solo con un valor seleccionado y `customFunction` definido). */
+  /** Label of the extra button (shown only with a selected value and `customFunction` defined). */
   @property() customButtonMessage = '';
 
   service?: CrudService<T>;
@@ -80,7 +81,7 @@ export class FinderSearch<T extends object = any> extends LitElement {
     MessageBroker.publish(`${this.name}-result-selected`, { item });
   }
 
-  /** Limpia el texto y la clave seleccionada. */
+  /** Clears the text and the selected key. */
   clear() {
     this.text = '';
     this.selected = '';
@@ -95,7 +96,7 @@ export class FinderSearch<T extends object = any> extends LitElement {
             <input type="text" autocomplete="off" class="${ui.input} pl-9" .value=${this.text} placeholder=${this.placeholder}
                    @focus=${() => this.fetchResults(this.text)} @input=${this.onInput} />
           </div>
-          ${this.selected ? html`<button type="button" class=${ui.iconBtn} title="Limpiar" @click=${this.clear}>${icon('x', 'size-4')}</button>` : ''}
+          ${this.selected ? html`<button type="button" class=${ui.iconBtn} title="${I18n.t('common.clear')}" @click=${this.clear}>${icon('x', 'size-4')}</button>` : ''}
           ${this.selected && this.customFunction
             ? html`<button type="button" class=${btn('secondary')} @click=${() => this.customFunction!(this.selected)}>${this.customButtonMessage}</button>` : ''}
         </div>

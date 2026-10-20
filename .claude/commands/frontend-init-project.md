@@ -25,13 +25,13 @@ Cuando el usuario invoque `/frontend-init-project`, configurar el proyecto desde
 - Poner la URL del backend como valor por defecto
 
 ### 6. Actualizar `frontend/src/app-root.ts`
-- Cambiar `sidebar-title` por el nombre corto del proyecto
-- Agregar una entrada en `NAV_ITEMS` por cada módulo: `{ path: '/nombre', label: 'Nombre', icon: '📋' }`
+- Cambiar `app.name` en ambos catálogos (`frontend/web/assets/i18n/*.properties`) por el nombre del proyecto
+- Agregar una entrada en `MENU` de `frontend/src/menu.ts` por cada módulo: `{ label: 'menu.nombre', icon: 'dashboard', path: `${A}/nombre`, privileges: ['VIEW_NOMBRE'] }` (la clave `menu.nombre` va en ambos catálogos i18n)
 
 ### 7. Crear módulos iniciales
 Por cada módulo indicado, ejecutar el flujo de `/frontend-new-module <nombre>`.
 
 ### 8. Limpiar archivos de ejemplo
 - Eliminar `frontend/src/modules/example/`
-- Remover el import de example en `frontend/src/index.ts`
+- Remover del proyecto el módulo de ejemplo (`frontend/src/modules/example/`) y sus claves `example.*` de ambos catálogos i18n
 - Remover la ruta de example en `frontend/src/app-root.ts`

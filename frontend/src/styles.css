@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 /* ══════════════════════════════════════════
-   TEMA — cambiar estos valores por empresa
-   Todo el diseño usa la escala `brand` y `sidebar`.
+   THEME — change these values per company
+   The whole design uses the `brand` and `sidebar` scales.
    ══════════════════════════════════════════ */
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;

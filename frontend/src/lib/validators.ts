@@ -1,4 +1,4 @@
-/** Validadores de string reutilizables; compatibles con FormField.validator: (v) => boolean */
+/** Reusable string validators; compatible with FormField.validator: (v) => boolean */
 export const isEmpty = (v?: string | any[] | null): boolean =>
   v == null || (typeof v === 'string' ? v.trim().length === 0 : v.length === 0);
 export const isNotEmpty = (v?: string | any[] | null) => !isEmpty(v);
@@ -14,9 +14,9 @@ export const isCode = (s: string) => /^[a-zA-Z0-9_]+$/.test(s);
 export const isEnvVarName = (s: string) => /^[A-Z_][A-Z0-9_]*$/.test(s);
 export const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 
-/** Contraseña fuerte: 8+ caracteres, mayúscula, minúscula, número y especial. */
+/** Strong password: 8+ characters, upper and lower case, digit and special character. */
 export const isStrongPassword = (s: string) =>
   !!s && s.length >= 8 && hasLower(s) && hasUpper(s) && hasDigit(s) && hasSpecial(s);
 
-/** Timestamp de expiración (ms) aún vigente. */
+/** Expiration timestamp (ms) still in the future. */
 export const isTokenValid = (expiresAtMs: number) => expiresAtMs >= Date.now();

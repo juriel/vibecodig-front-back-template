@@ -3,7 +3,7 @@ from app.db import Base
 
 
 class Privilege(Base):
-    """Permiso granular (p. ej. ADD_USER). El código 'ALL' es el super-privilegio."""
+    """Granular permission (e.g. ADD_USER). The 'ALL' code is the super privilege."""
     __tablename__ = "privilege"
 
     code = Column(String(64), primary_key=True)

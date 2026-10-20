@@ -10,7 +10,7 @@ profile_x_privilege = Table(
 
 
 class Profile(Base):
-    """Perfil = grupo de privilegios."""
+    """Profile = a group of privileges."""
     __tablename__ = "profile"
 
     id = Column(Integer, primary_key=True)

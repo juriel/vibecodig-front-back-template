@@ -1,12 +1,12 @@
 import secrets
 import string
 
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.dtos.user_dto import UserCreateDTO, UserUpdateDTO
 from app.entities.profile import Profile
 from app.entities.user import User
+from app.errors import ApiError
 from app.security import hash_password
 
 MIN_PASSWORD = 6
@@ -14,6 +14,10 @@ MIN_PASSWORD = 6
 
 def _is_super(user: User) -> bool:
     return "ALL" in user.privileges
+
+
+def _new_salt() -> str:
+    return "".join(secrets.choice(string.ascii_uppercase) for _ in range(6))
 
 
 def _serialize(user: User) -> dict:
@@ -29,27 +33,27 @@ def _serialize(user: User) -> dict:
 def _find(db: Session, login: str) -> User:
     user = db.get(User, login)
     if user is None or user.deleted:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise ApiError(404, "error.user.not_found")
     return user
 
 
 def _profiles(db: Session, actor: User, ids: list[int]) -> list[Profile]:
-    """Perfiles solicitados; solo un super usuario puede asignar perfiles que contengan ALL."""
+    """Requested profiles; only a super user may assign profiles that contain ALL."""
     found = db.query(Profile).filter(Profile.id.in_(ids)).all() if ids else []
     if len(found) != len(set(ids)):
-        raise HTTPException(status_code=400, detail="Perfil inexistente")
+        raise ApiError(400, "error.user.profile_not_found")
     if not _is_super(actor) and any(any(pr.code == "ALL" for pr in p.privileges) for p in found):
-        raise HTTPException(status_code=403, detail={"error": "No puedes asignar perfiles de super usuario"})
+        raise ApiError(403, "error.user.assign_super_profile")
     return found
 
 
 def _guard_target(actor: User, target: User):
     if _is_super(target) and not _is_super(actor):
-        raise HTTPException(status_code=403, detail={"error": "No puedes modificar a un super usuario"})
+        raise ApiError(403, "error.user.modify_super")
 
 
 def list_profiles(db: Session, actor: User) -> list[dict]:
-    """Perfiles asignables por el actor (para el selector del formulario)."""
+    """Profiles the actor may assign (for the form selector)."""
     profiles = db.query(Profile).order_by(Profile.name).all()
     if not _is_super(actor):
         profiles = [p for p in profiles if not any(pr.code == "ALL" for pr in p.privileges)]
@@ -66,10 +70,10 @@ def get_user(db: Session, login: str) -> dict:
 
 
 def create_user(db: Session, actor: User, dto: UserCreateDTO) -> dict:
-    # También valida contra usuarios borrados: el login es la PK y no se puede reutilizar.
+    # Also checks deleted users: the login is the primary key and cannot be reused.
     if db.get(User, dto.login) is not None:
-        raise HTTPException(status_code=409, detail="Ya existe un usuario con ese login")
-    salt = "".join(secrets.choice(string.ascii_uppercase) for _ in range(6))
+        raise ApiError(409, "error.user.login_exists")
+    salt = _new_salt()
     user = User(
         login=dto.login, salt=salt, password=hash_password(salt, dto.password),
         name=dto.name, email=dto.email or None, deleted=False,
@@ -88,8 +92,8 @@ def update_user(db: Session, actor: User, login: str, dto: UserUpdateDTO) -> dic
     user.email = dto.email or None
     if dto.password:
         if len(dto.password) < MIN_PASSWORD:
-            raise HTTPException(status_code=422, detail=f"La contraseña debe tener al menos {MIN_PASSWORD} caracteres")
-        user.salt = "".join(secrets.choice(string.ascii_uppercase) for _ in range(6))
+            raise ApiError(422, "error.user.password_too_short", MIN_PASSWORD)
+        user.salt = _new_salt()
         user.password = hash_password(user.salt, dto.password)
     user.profiles = _profiles(db, actor, dto.profile_ids)
     db.commit()
@@ -98,9 +102,9 @@ def update_user(db: Session, actor: User, login: str, dto: UserUpdateDTO) -> dic
 
 
 def delete_user(db: Session, actor: User, login: str) -> None:
-    """Borrado lógico (deleted=1), como el resto del sistema."""
+    """Soft delete (deleted=1), like the rest of the system."""
     if login == actor.login:
-        raise HTTPException(status_code=400, detail="No puedes eliminar tu propio usuario")
+        raise ApiError(400, "error.user.cannot_delete_self")
     user = _find(db, login)
     _guard_target(actor, user)
     user.deleted = True

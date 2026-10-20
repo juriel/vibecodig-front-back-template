@@ -4,12 +4,13 @@ import os
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.entities.user import User
+from app.errors import ApiError
 
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "480"))
@@ -19,12 +20,12 @@ _bearer = HTTPBearer(auto_error=False)
 def _secret() -> str:
     secret = os.environ.get("JWT_SECRET")
     if not secret:
-        raise RuntimeError("Falta JWT_SECRET en el .env")
+        raise RuntimeError("JWT_SECRET is missing from .env")
     return secret
 
 
 def hash_password(salt: str, password: str) -> str:
-    """SHA-256(salt + password) en hex: mismo esquema que la tabla `users` existente."""
+    """SHA-256(salt + password) as hex: same scheme as the existing `users` table."""
     return hashlib.sha256((salt + password).encode()).hexdigest()
 
 
@@ -41,24 +42,23 @@ def get_current_user(
     cred: HTTPAuthorizationCredentials | None = Depends(_bearer),
     db: Session = Depends(get_db),
 ) -> User:
-    unauthorized = HTTPException(status_code=401, detail="No autenticado")
     if cred is None:
-        raise unauthorized
+        raise ApiError(401, "error.unauthenticated")
     try:
         login = jwt.decode(cred.credentials, _secret(), algorithms=[JWT_ALGORITHM])["sub"]
     except jwt.PyJWTError:
-        raise unauthorized
+        raise ApiError(401, "error.unauthenticated")
     user = db.get(User, login)
     if user is None or user.deleted:
-        raise unauthorized
+        raise ApiError(401, "error.unauthenticated")
     return user
 
 
 def require_privilege(*codes: str):
-    """Dependency: exige al menos uno de los privilegios (o ALL). Uso: dependencies=[Depends(require_privilege('VIEW_USER'))]"""
+    """Dependency: requires at least one of the privileges (or ALL). Usage: dependencies=[Depends(require_privilege('VIEW_USER'))]"""
     def checker(user: User = Depends(get_current_user)) -> User:
-        privs = user.privileges
-        if "ALL" not in privs and not privs.intersection(codes):
-            raise HTTPException(status_code=403, detail={"error": "Sin permisos para esta acción"})
+        privileges = user.privileges
+        if "ALL" not in privileges and not privileges.intersection(codes):
+            raise ApiError(403, "error.forbidden")
         return user
     return checker

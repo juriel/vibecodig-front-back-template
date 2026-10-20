@@ -15,6 +15,6 @@ export class UserService extends CrudService<UserDTO> {
   base = GlobalConfig.getInstance().apiUrl + 'users';
   getKey = (e: UserDTO) => e.login;
 
-  /** Perfiles que el usuario actual puede asignar. */
+  /** Profiles the current user can assign. */
   profiles = () => axios.get<{ id: number; name: string }[]>(this.base + '/profiles').then(r => r.data);
 }

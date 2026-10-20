@@ -2,8 +2,9 @@ import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { btn } from './ui';
 import { icon } from './icons';
+import { I18n } from './i18n';
 
-/** Notificación efímera. Uso: toast('Guardado', 'success'); toast('Error', 'error', 5000) */
+/** Ephemeral notification. Usage: toast(I18n.t('crud.saved'), 'success'); toast(message, 'error', 5000) */
 export function toast(message: string, kind: 'info' | 'success' | 'error' = 'info', ms = 3500) {
   const el = document.createElement('app-toast') as AppToast;
   el.message = message;
@@ -27,12 +28,12 @@ export class AppToast extends LitElement {
     return html`
       <div class="fixed bottom-4 right-4 z-[10000] flex max-w-sm items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg ${TOAST_COLORS[this.kind]}" role="status">
         <span class="flex-1">${this.message}</span>
-        <button class="opacity-60 hover:opacity-100" @click=${() => this.remove()} aria-label="Cerrar">${icon('x', 'size-4')}</button>
+        <button class="opacity-60 hover:opacity-100" @click=${() => this.remove()} aria-label="${I18n.t('common.close')}">${icon('x', 'size-4')}</button>
       </div>`;
   }
 }
 
-/** Diálogo de confirmación promisificado. Uso: if (await confirmDialog('¿Eliminar?', { danger: true })) ... */
+/** Promise-based confirmation dialog. Usage: if (await confirmDialog(I18n.t('crud.delete.title'), { danger: true })) ... */
 export function confirmDialog(
   question: string,
   opts: { title?: string; okLabel?: string; cancelLabel?: string; danger?: boolean } = {},
@@ -46,10 +47,10 @@ export function confirmDialog(
 
 @customElement('app-confirm')
 export class AppConfirm extends LitElement {
-  @property() title = 'Confirmar';
+  @property() title = I18n.t('common.confirm');
   @property() question = '';
-  @property() okLabel = 'Aceptar';
-  @property() cancelLabel = 'Cancelar';
+  @property() okLabel = I18n.t('common.accept');
+  @property() cancelLabel = I18n.t('common.cancel');
   @property({ type: Boolean }) danger = false;
   resolve: (v: boolean) => void = () => {};
   createRenderRoot() { return this; }

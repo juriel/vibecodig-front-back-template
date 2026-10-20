@@ -28,7 +28,7 @@ npm start                     # http://localhost:8000 (sitio) y http://localhost
 
 | URL | Contenido |
 |-----|-----------|
-| `/` | Sitio público (sin login) |
+| `/`, `/<url>.page` | Sitio público del CMS (pages, layouts and widgets from the database; no login) |
 | `/admin` | Panel (SPA) con login |
 | `/dist/app.js` | JavaScript compilado por Webpack |
 | `/api/...` | Backend |
@@ -62,14 +62,14 @@ backend/
 ├── main.py              # sub-app FastAPI `api` (routers + create_all)
 └── app/                 # db, entities, dtos, services, routers, mapper, repository
 frontend/
-├── src/                 # index.ts, app-root.ts, crud/ (framework genérico), modules/
-└── web/                 # index.html (panel /admin), sitio.html (público /) y dist/ (generado)
+├── src/                 # index.ts, boot.ts, app-root.ts, crud/ (framework genérico), lib/ (i18n, session, toast...), modules/
+└── web/                 # index.html (panel /admin), assets/i18n/ (catálogos) y dist/ (generado)
 .claude/commands/        # skills de Claude Code: backend-* y frontend-*
 ```
 
 ## Cómo funciona la integración
 - `server.py` crea la app principal, monta el backend con `app.mount("/api", api)` y sirve `frontend/web/`.
-- Cualquier ruta bajo `/admin` devuelve `index.html` (fallback SPA), así que recargar en `/admin/example` funciona. `/` es el sitio público (`sitio.html`), sin login.
+- Cualquier ruta bajo `/admin` devuelve `index.html` (fallback SPA), así que recargar en `/admin/example` funciona. `/` es el sitio público del CMS, sin login.
 - El frontend usa `GlobalConfig.apiUrl = '/api/'`.
 - Las rutas del backend se declaran **sin** prefijo `/api`.
 - `create_all` se ejecuta en el lifespan de `server.py`, porque una sub-app montada no recibe sus propios eventos de arranque.

@@ -1,11 +1,12 @@
 import axios from 'axios';
 import { toast } from './toast';
+import { I18n } from './i18n';
 import { GlobalConfig } from '../global-config';
 
 /**
- * Sesión en localStorage: { token, user, privileges: string[] }.
- * Adjunta el Bearer token a cada request y redirige a /login ante 401.
- * Llamar SessionStatus.installInterceptors() una vez (en index.ts) si el proyecto usa auth.
+ * Session stored in localStorage: { token, user, privileges: string[] }.
+ * Attaches the Bearer token to every request and redirects to the login page on 401.
+ * Call SessionStatus.installInterceptors() once (in boot.ts) if the project uses auth.
  */
 export class SessionStatus {
   static readonly KEY = 'SESSION';
@@ -25,10 +26,10 @@ export class SessionStatus {
   }
 
   hasPrivilege(code: string) { return this.privileges.includes(code); }
-  /** true si tiene el privilegio o el comodín "ALL". */
+  /** true if the user has the privilege or the "ALL" wildcard. */
   can(code: string) { return this.hasPrivilege(code) || this.hasPrivilege('ALL'); }
 
-  /** true si hay token y no ha expirado (se lee el `exp` del JWT; el servidor igual lo valida). */
+  /** true if there is a token and it has not expired (reads the JWT `exp`; the server validates it anyway). */
   get isLoggedIn(): boolean {
     const t = this.token;
     if (!t) return false;
@@ -41,8 +42,8 @@ export class SessionStatus {
   }
 
   /**
-   * Permiso para una acción de un módulo según la convención de la base: ACCION_ENTIDAD,
-   * p. ej. allowed('user','edit') → EDIT_USER; create → ADD_, list/view → VIEW_. Siempre true si auth está desactivada.
+   * Permission for a module action following the database convention: ACTION_ENTITY,
+   * e.g. allowed('user','edit') → EDIT_USER; create → ADD_, list/view → VIEW_. Always true when auth is disabled.
    */
   allowed(prefix: string, action: 'list' | 'create' | 'edit' | 'delete' | 'view'): boolean {
     if (!GlobalConfig.getInstance().authRequired) return true;
@@ -64,8 +65,9 @@ export class SessionStatus {
     axios.interceptors.response.use(r => r, err => {
       const status = err.response?.status;
       const isLogin = err.config?.url?.includes('auth/login');
+      const detail = err.response?.data?.detail;
       if (status === 401 && !isLogin) SessionStatus.getInstance().logout();
-      else if (status === 403) toast(err.response.data?.detail?.error ?? err.response.data?.detail ?? 'Acceso denegado', 'error');
+      else if (status === 403) toast(typeof detail === 'string' ? detail : I18n.t('error.forbidden'), 'error');
       return Promise.reject(err);
     });
   }

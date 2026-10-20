@@ -4,6 +4,8 @@ Cuando el usuario invoque `/frontend-new-module <nombre>`, generar los 4 archivo
 
 Reemplazar `<Nombre>` con PascalCase y `<nombre>` con kebab-case del módulo.
 
+**Idioma e i18n:** todo el código, los nombres de archivos, las clases y las **rutas van en inglés** (`/admin/<nombre>`). Ningún texto visible va escrito a mano: cada `label`, título de columna, ayuda, etc. usa `I18n.t('<nombre>.field.<campo>')` (importar `I18n` de `lib/i18n`) y las claves se agregan a **ambos** catálogos (`frontend/web/assets/i18n/en.properties` y `es.properties`), incluida la del menú (`menu.<nombre>`). Al terminar, ejecutar `python3 scripts/check_i18n.py`.
+
 ## 1. `frontend/src/modules/<nombre>/<nombre>.service.ts`
 
 ```typescript
@@ -34,6 +36,7 @@ export class <Nombre>Table extends CrudTable<<Nombre>DTO> {
   service = new <Nombre>Service();
   columns = () => [
     { key: 'id', label: 'ID' },
+    // { key: 'campo', label: I18n.t('<nombre>.field.campo') },
     // agregar columnas según los campos del DTO
   ];
 }
@@ -52,7 +55,7 @@ export class <Nombre>Form extends CrudForm<<Nombre>DTO> {
   get prefix() { return '<nombre>'; }
   service = new <Nombre>Service();
   fields = (): FormField[] => [
-    // agregar campos: { key, label, type?, required?, zone?, options? }
+    // add fields: { key, label: I18n.t('<nombre>.field.<campo>'), type?, required?, zone?, options? }
   ];
 }
 ```
@@ -69,13 +72,13 @@ import { <Nombre>DTO } from './<nombre>.service';
 @customElement('<nombre>-page')
 export class <Nombre>Page extends CrudPage<<Nombre>DTO> {
   get prefix() { return '<nombre>'; }
-  label  = '<Nombre>';
+  label  = I18n.t('menu.<nombre>');
   createTable = () => new <Nombre>Table();
   createForm  = () => new <Nombre>Form();
 }
 ```
 
-## 5. Registrar en `frontend/src/index.ts`
+## 5. Registrar en `frontend/src/boot.ts`
 Agregar:
 ```typescript
 import './modules/<nombre>/<nombre>.page';
@@ -87,7 +90,7 @@ import './modules/<nombre>/<nombre>.form';
 ```typescript
 { path: `${ADMIN}/<nombre>`, component: '<nombre>-page' }
 ```
-Y agregar la entrada en `frontend/src/menu.ts` (`path: `${A}/<nombre>``, `icon`, `privileges: ['VIEW_<NOMBRE>']`).
+Y agregar la entrada en `frontend/src/menu.ts` (`label: 'menu.<nombre>'`, `path: `${A}/<nombre>``, `icon`, `privileges: ['VIEW_<NOMBRE>']`).
 
 ## 7. Actualizar CLAUDE.md
 - Marcar módulo como ✅ en `## Módulos`

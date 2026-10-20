@@ -1,12 +1,10 @@
 import './styles.css';
-import { SessionStatus } from './lib/session';
-import './app-root';
-import './modules/login/login-page';
-import './modules/home/home-page';
-import './modules/pending/pending-page';
-import './modules/user/user.page';
-import './modules/user/user.table';
-import './modules/user/user.form';
-// Import modules here
+import axios from 'axios';
+import { I18n } from './lib/i18n';
 
-SessionStatus.installInterceptors();
+// The catalog must be loaded before any component renders, so the app is imported afterwards.
+I18n.init('en').then(async () => {
+  axios.defaults.headers.common['Accept-Language'] = I18n.lang;   // the API translates its messages with this header
+  document.title = I18n.t('app.name');
+  await import('./boot');
+});

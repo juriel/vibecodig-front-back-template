@@ -11,8 +11,8 @@ const ADMIN = GlobalConfig.getInstance().adminBase;
 const LOGIN = `${ADMIN}/login`;
 
 /**
- * Guard de rutas (solo si `authRequired`): sin sesión → login; sin ninguno de los privilegios de su
- * entrada en menu.ts → inicio. El backend igualmente valida cada endpoint.
+ * Route guard (only if `authRequired`): no session → login; none of the privileges of its menu.ts
+ * entry → home. The backend validates every endpoint anyway.
  */
 const requireAuth = (ctx: Context, commands: Commands) => {
   if (!GlobalConfig.getInstance().authRequired) return undefined;
@@ -40,7 +40,12 @@ export class AppRoot extends LitElement {
       ...protect([
         { path: ADMIN, component: 'home-page' },
         { path: `${ADMIN}/user`, component: 'user-page' },
-        // Add routes here (antes de las secciones pendientes)
+        { path: `${ADMIN}/profile`, component: 'profile-page' },
+        { path: `${ADMIN}/privilege`, component: 'privilege-page' },
+        { path: `${ADMIN}/pages`, component: 'cms-page-page' },
+        { path: `${ADMIN}/layouts`, component: 'cms-layout-page' },
+        { path: `${ADMIN}/widgets`, component: 'cms-widget-page' },
+        // Add routes here (before the pending sections)
         ...leaves(MENU).filter(i => i.pending).map(i => ({ path: i.path!, component: 'pending-page' })),
       ]),
       { path: `${ADMIN}/(.*)`, redirect: ADMIN },

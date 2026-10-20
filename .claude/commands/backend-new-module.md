@@ -10,6 +10,10 @@ Cuando el usuario invoque `/backend-new-module <nombre>`, crear un módulo compl
 
 ---
 
+> **Idioma del código e i18n:** todo el código, los comentarios, las rutas y los nombres van en **inglés**. Nunca se escriben mensajes literales en un `HTTPException`: se lanza `ApiError(status, "error.<nombre>.<causa>", *args)` y la clave se agrega a **ambos** catálogos (`frontend/web/assets/i18n/en.properties` y `es.properties`). Al terminar, ejecutar `python3 scripts/check_i18n.py`.
+
+---
+
 ## 1. Crear entidad en `backend/app/entities/<nombre>.py`
 
 Heredar de `Base`. Siempre incluir `id` (PK) y `created_at`.
@@ -64,7 +68,7 @@ Para casos con transformación especial de campos (ej. hashing), recibe el DTO y
 ```python
 # backend/app/services/<nombre>_service.py
 from sqlalchemy.orm import Session
-from fastapi import HTTPException
+from app.errors import ApiError
 from app.repository import BaseRepository
 from app.entities.<nombre> import <Nombre>
 
@@ -80,14 +84,14 @@ def create_item(db: Session, entity: <Nombre>):
 def get_item(db: Session, item_id: int):
     item = BaseRepository(db, <Nombre>).find(item_id)
     if not item:
-        raise HTTPException(status_code=404, detail="<Nombre> no encontrado")
+        raise ApiError(404, "error.<nombre>.not_found")
     return item.to_dict()
 
 
 def delete_item(db: Session, item_id: int):
     repo = BaseRepository(db, <Nombre>)
     if not repo.find(item_id):
-        raise HTTPException(status_code=404, detail="<Nombre> no encontrado")
+        raise ApiError(404, "error.<nombre>.not_found")
     repo.delete(item_id)
 ```
 

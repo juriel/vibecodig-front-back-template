@@ -1,8 +1,8 @@
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.dtos.auth_dto import LoginDTO
 from app.entities.user import User
+from app.errors import ApiError
 from app.security import create_token, verify_password
 
 
@@ -18,7 +18,7 @@ def session_data(user: User, token: str | None = None) -> dict:
 
 def login(db: Session, dto: LoginDTO) -> dict:
     user = db.get(User, dto.login)
-    # Mismo error para usuario inexistente, borrado o clave errónea (no revelar cuál).
+    # Same error for unknown user, deleted user or wrong password (do not reveal which one).
     if user is None or user.deleted or not verify_password(user, dto.password):
-        raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
+        raise ApiError(401, "error.invalid_credentials")
     return session_data(user, create_token(user.login))

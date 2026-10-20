@@ -4,7 +4,7 @@ import { CrudService } from '../crud/crud-service';
 import { ui } from './ui';
 
 /**
- * <select> alimentado por un CrudService (FK / catálogos). Emite 'change' con detail = valor(es) seleccionados.
+ * <select> fed by a CrudService (FKs / catalogs). Emits 'change' with detail = the selected value(s).
  *   const s = new SelectFromService<ChatbotDTO>();
  *   Object.assign(s, { service: new ChatbotService(), getValue: c => c.id!, getText: c => c.name, name: 'chatbot_id' });
  */

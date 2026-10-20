@@ -6,6 +6,8 @@
 ## Módulos
 - [x] Auth (login JWT + privilegios)
 - [x] Panel `/admin`: menú lateral + inicio con tarjetas; secciones CMS aún "en construcción" (`pending-page`)
+- [x] CMS público + administración de Pages (`/admin/pages`), Layouts (`/admin/layouts`) y Widgets (`/admin/widgets`); pendientes: CSS, Javascripts, Configuraciones globales, Carpetas y Archivos (media manager)
+- [x] Perfiles (`/admin/profile`): CRUD de `profile` + asignación de privilegios agrupados por categoría; Privilegios (`/admin/privilege`): catálogo de solo lectura
 - [x] Usuarios (`/admin/user`): CRUD sobre `users` con asignación de perfiles; borrado lógico (`deleted=1`)
 
 ## Stack
@@ -37,7 +39,7 @@ El navegador siempre habla con el mismo origen: `GlobalConfig.apiUrl = '/api/'`.
 
 ## Estructura
 ```
-server.py                  # entry point: monta backend en /api, /admin → SPA (index.html), / → sitio.html público
+server.py                  # entry point: monta backend en /api, /admin → SPA (index.html), / → sitio público del CMS
 requirements.txt, .env.example, package.json (scripts raíz)
 backend/
 ├── main.py                # define la sub-app `api` (FastAPI): routers + create_all (NO se ejecuta directo)
@@ -54,14 +56,14 @@ backend/
 frontend/
 ├── package.json, webpack.config.js, tsconfig.json
 ├── src/
-│   ├── index.ts, app-root.ts (shell + rutas /admin + guard), global-config.ts (appName, adminBase, authRequired), menu.ts (menú lateral y tarjetas del inicio), styles.css (@theme Tailwind)
+│   ├── index.ts (carga el catálogo i18n y luego `boot.ts`), boot.ts (registra módulos e interceptores), app-root.ts (shell + rutas /admin + guard), global-config.ts (appName, adminBase, authRequired), menu.ts (menú lateral y tarjetas del inicio), styles.css (@theme Tailwind)
 │   ├── shell/             # app-sidebar, app-header
 │   ├── crud/              # framework CRUD genérico (tabla con búsqueda/paginación, form, page)
 │   ├── lib/               # utilidades genéricas: ui (clases Tailwind), icons, i18n, validators, date, session (auth+interceptors), toast/confirmDialog, select-from-service, finder-search
 │   └── modules/<nombre>/  # service / table / form / page por módulo
 └── web/
     ├── index.html         # panel (SPA) en /admin
-    ├── sitio.html         # página pública provisional en /
+    ├── assets/i18n/       # catálogos en.properties / es.properties (frontend y backend)
     └── dist/app.js        # generado por webpack (ignorado por git), servido en /dist/app.js
 ```
 
@@ -69,7 +71,7 @@ frontend/
 - Rutas del backend se declaran sin prefijo `/api` (lo añade el mount). Routers se incluyen en `backend/main.py` con `api.include_router(...)`.
 - Los services del frontend usan `GlobalConfig.getInstance().apiUrl + '<recurso>'` (sin `/` inicial en `<recurso>`).
 - El panel vive en `/admin`: cualquier ruta bajo `/admin` devuelve `index.html` (el router de Vaadin resuelve en cliente) y pide login (si `authRequired`). Las rutas del router y las de `menu.ts` van con prefijo `/admin` (`GlobalConfig.adminBase`); el login es `/admin/login`. `index.html` referencia `/dist/app.js` con ruta absoluta.
-- El resto es el sitio público, sin login: `/` sirve `sitio.html`, los archivos de `web/` se sirven tal cual y cualquier otra ruta da 404.
+- El resto es el sitio público, sin login: `/` y `/<url>.page` los renderiza el CMS (sin página índice se muestra una página "en construcción" traducida), los archivos de `web/` se sirven tal cual y cualquier otra ruta da 404.
 - Tras cambiar código del frontend hay que recompilar (`npm run build` o `dev:front`); el server no compila.
 - Ejecutar siempre desde la raíz con `server:app` (no `main:app`).
 
@@ -84,6 +86,29 @@ frontend/
 | POST | /users | crea `{login, password, name, email?, profile_ids[]}` (`ADD_USER`); 409 si el login existe |
 | PUT | /users/{login} | edita `{name, email?, password?, profile_ids[]}`; password vacío = sin cambio (`EDIT_USER`) |
 | DELETE | /users/{login} | borrado lógico (`DELETE_USER`); no permite borrarse a sí mismo |
+| GET | /cms/pages/layouts | plantillas para el selector del formulario de página (`ADD_CMS_PAGE`/`EDIT_CMS_PAGE`) |
+| GET, POST | /cms/pages | lista (sin contenido pesado) / crea; el dueño es el usuario actual (`VIEW_`/`ADD_CMS_PAGE`) |
+| GET, PUT, DELETE | /cms/pages/{id} | detalle completo / edita / elimina (`VIEW_`/`EDIT_`/`DELETE_CMS_PAGE`) |
+| GET | /cms/layouts/types | tipos de plantilla (`ADD_CMS_LAYOUT`/`EDIT_CMS_LAYOUT`) |
+| GET, POST | /cms/layouts | plantillas (`VIEW_`/`ADD_CMS_LAYOUT`) |
+| GET, PUT, DELETE | /cms/layouts/{id} | detalle / edita / elimina; 409 si la usa alguna página (`VIEW_`/`EDIT_`/`DELETE_CMS_LAYOUT`) |
+| GET, POST | /cms/widgets | widgets con conteo de usos (privilegios de páginas: `VIEW_`/`ADD_CMS_PAGE`) |
+| GET, PUT, DELETE | /cms/widgets/{id} | detalle / edita / elimina; 409 al renombrar o borrar si está en uso (`VIEW_`/`EDIT_`/`DELETE_CMS_PAGE`) |
+| GET | /privileges | catálogo completo de privilegios, solo lectura (`VIEW_PROFILE`) |
+| GET | /profiles/privileges | privilegios que el usuario actual puede conceder (`ADD_PROFILE`/`EDIT_PROFILE`) |
+| GET | /profiles | lista perfiles con `privilege_codes[]` (`VIEW_PROFILE`) |
+| GET | /profiles/{id} | detalle (`VIEW_PROFILE`) |
+| POST | /profiles | crea `{name, privilege_codes[]}` (`ADD_PROFILE`); 409 si el nombre existe |
+| PUT | /profiles/{id} | edita `{name, privilege_codes[]}` (`EDIT_PROFILE`) |
+| DELETE | /profiles/{id} | elimina (`DELETE_PROFILE`); 409 si lo usa algún usuario activo |
+
+## Idioma del código e i18n
+- **Todo el código en inglés**: identificadores, comentarios, docstrings, rutas del router y de la API, URLs, nombres de claves, mensajes de commit. Solo el **contenido** (textos para el usuario, datos de la base) puede estar en otro idioma.
+- **Todo texto visible pasa por i18n.** Idioma por defecto y fallback: `en`; también `es`. Un único catálogo compartido: `frontend/web/assets/i18n/<lang>.properties` (`clave=valor`, marcadores `{0}`, `{1}`; plurales con sufijos `.one`/`.other` y `I18n.tn`).
+- Frontend: `I18n.t('clave', ...args)` (`lib/i18n.ts`); las etiquetas de `menu.ts` son claves `menu.*`. El idioma sale de localStorage > navegador > `en`; el selector (`<lang-switch>`) guarda la elección y recarga la página. Cada petición envía `Accept-Language`.
+- Backend: no escribir mensajes literales. Lanzar `ApiError(status, 'error.<modulo>.<causa>', *args)` (`app/errors.py`); el servidor lo traduce con `Accept-Language` y responde `{"detail": <mensaje>, "code": <clave>}`. Las páginas públicas (404, "en construcción") y la CLI (`create_user.py`, según `LANG`) usan `t()` de `app/i18n.py`. Errores 422 de Pydantic: el formulario los traduce por tipo (`validation.<type>`) y los muestra en cada campo.
+- Idioma del sitio publicado: `SITE_LANG` (`.env`) fija el `<html lang>`; es independiente del idioma del panel y el contenido de la base no se traduce.
+- Al añadir o cambiar textos: editar **ambos** catálogos y ejecutar `python3 scripts/check_i18n.py` (falla si falta una clave en algún idioma o si el código usa una clave inexistente).
 
 ## Convenciones backend
 
@@ -91,6 +116,14 @@ frontend/
 - Variables `.env`: `JWT_SECRET` (obligatoria), `JWT_EXPIRE_MINUTES` (default 480).
 - `app/security.py`: `get_current_user` (exige `Authorization: Bearer`) y `require_privilege('VIEW_X', ...)` (al menos uno, o `ALL`). Proteger routers con `dependencies=[Depends(...)]`.
 - Privilegios con patrón `ACCION_ENTIDAD`: `ADD_`, `EDIT_`, `DELETE_`, `VIEW_`. El frontend los deriva con `SessionStatus.allowed('user','edit')` → `EDIT_USER` (create→ADD, list/view→VIEW).
+- Sitio público del CMS (fuera de `/api`, `backend/app/routers/cms_public.py`, incluido en `server.py` antes del fallback):
+  `GET /` y `GET /<url>.page` renderizan la página (`/` = la de `is_index=1`; sin ninguna se muestra la página provisional), `GET /css/<path>` y `/js/<path>` sirven CSS/JS globales (`cms_css.path`/`cms_js.path`) o los de una página (`<url>.css`, `<url>.js`), `GET /media/<carpeta>/<archivo>` sirve el archivo desde el VFS (`?download=true` fuerza descarga).
+  Marcadores de plantilla: `%CONTENT%`, `%TITLE%`, `%SUBTITLE%`, `%OWNER%`, `%URL%`, `%ID%`, `%CREATION_DATE%`, `%UPDATE_DATE%` y `%WIDGET:name%` (también dentro del contenido de la página; los widgets no se expanden entre sí). Un widget inexistente deja un comentario HTML.
+  CSS activos (`active=1`, por `order_show`; `url` externa o `/css/<path>`) van en todas las páginas; JS por `type` (`header` en el `<head>`, `footer` al final del `<body>`).
+  Las páginas privadas (con filas en `page_x_registered_user_group`) responden 403 y no exponen su CSS/JS: el login de usuarios registrados no está portado.
+  El media manager lee `vfs.path` relativo a `VFS_PATH` (`.env`, default `/opt/vfs`) y nunca sale de esa raíz; los SVG/HTML servidos llevan `Content-Security-Policy: sandbox`.
+- Reglas de CMS (admin): URL de página única y con patrón `[A-Za-z0-9][A-Za-z0-9_-/]*`; solo una página índice; el dueño y la fecha de creación no cambian al editar. Una sola plantilla predeterminada por tipo (la primera de un tipo lo es siempre; al borrar la predeterminada se promueve otra). No se borra una plantilla en uso. Los widgets se nombran con `[A-Za-z0-9_-]`, y no se renombran ni borran si alguna plantilla o página los referencia. Los widgets no tienen privilegios propios: usan los de páginas.
+- Reglas de perfiles: los perfiles con `editable=0` (sistema, p. ej. Administrator) no se modifican ni borran. Solo se pueden CONCEDER privilegios que el actor posee (`ALL` puede todo). Un perfil con `ALL` solo lo administra un super usuario. No se borra un perfil en uso; la tabla no tiene claves foráneas, así que la integridad la garantiza la app. El catálogo de privilegios es de solo lectura (los códigos los define el código de la plataforma).
 - Reglas de usuarios: solo un super usuario (`ALL`) puede asignar perfiles con `ALL` o modificar/borrar a otro super usuario. Usuarios borrados (`deleted=1`) no pueden iniciar sesión ni reutilizar su login. El login responde el mismo 401 para usuario inexistente o clave errónea.
 
 ### Capas
@@ -136,7 +169,7 @@ repo.find_all_by(eager=EAGER, campo="valor")
 - Todos los componentes son light DOM (`createRenderRoot() { return this; }`) para que apliquen las utilidades de Tailwind. No usar `static styles`/shadow DOM.
 - Colores y fuente se cambian en el bloque `@theme` de `styles.css` (escala `brand-*` y `sidebar*`); usar `bg-brand-600`, no colores fijos.
 - Reutilizar `ui`/`btn()` de `lib/ui.ts` e `icon()` de `lib/icons.ts` en lugar de repetir clases.
-- Menú lateral: `src/menu.ts` (con `privileges`); rutas: `app-root.ts`. Auth: poner `authRequired = true` en `global-config.ts` cuando exista `POST /api/auth/login` (devuelve `{token, user, privileges[]}`).
+- Menú lateral: `src/menu.ts` (`label` = clave i18n, rutas en inglés, `privileges`); rutas: `app-root.ts`. Auth: poner `authRequired = true` en `global-config.ts` cuando exista `POST /api/auth/login` (devuelve `{token, user, privileges[]}`).
 
 ### Patrón CRUD — crear un módulo (`frontend/src/modules/<nombre>/`)
 ```typescript
@@ -151,7 +184,7 @@ export class NombreService extends CrudService<NombreDTO> {
 export class NombreTable extends CrudTable<NombreDTO> {
   get prefix() { return 'nombre'; }
   service = new NombreService();
-  columns = () => [ { key: 'id', label: 'ID' }, { key: 'campo', label: 'Campo' } ];
+  columns = () => [ { key: 'id', label: 'ID' }, { key: 'campo', label: I18n.t('nombre.field.campo') } ];
 }
 
 // nombre.form.ts
@@ -160,9 +193,9 @@ export class NombreForm extends CrudForm<NombreDTO> {
   get prefix() { return 'nombre'; }
   service = new NombreService();
   fields = (): FormField[] => [
-    { key: 'campo', label: 'Campo', required: true },
-    { key: 'tipo', label: 'Tipo', type: 'select', options: { a: 'A', b: 'B' }, zone: 'left' },
-    { key: 'notas', label: 'Notas', type: 'textarea', zone: 'bottom' },
+    { key: 'campo', label: I18n.t('nombre.field.campo'), required: true },
+    { key: 'tipo', label: I18n.t('nombre.field.tipo'), type: 'select', options: { a: 'A', b: 'B' }, zone: 'left' },
+    { key: 'notas', label: I18n.t('nombre.field.notas'), type: 'textarea', zone: 'bottom' },
   ];
 }
 
@@ -170,12 +203,18 @@ export class NombreForm extends CrudForm<NombreDTO> {
 @customElement('nombre-page')
 export class NombrePage extends CrudPage<NombreDTO> {
   get prefix() { return 'nombre'; }
-  label = 'Nombre';
+  label = I18n.t('menu.nombre');
   createTable = () => new NombreTable();
   createForm  = () => new NombreForm();
 }
 ```
-Registrar: importar en `frontend/src/index.ts` y añadir ruta `/admin/<nombre>` en `frontend/src/app-root.ts` (antes de las secciones pendientes). Para que aparezca en el menú y en las tarjetas del inicio, agregar la entrada en `MENU` de `frontend/src/menu.ts` (ruta `/admin/<nombre>`, icono de `lib/icons.ts` y `privileges`); si aún no tiene componente propio, márcala `pending: true` y `app-root` la muestra con `pending-page` (quitar `pending` al registrar su ruta).
+Registrar: importar en `frontend/src/boot.ts` y añadir ruta `/admin/<nombre>` en `frontend/src/app-root.ts` (antes de las secciones pendientes). Para que aparezca en el menú y en las tarjetas del inicio, agregar la entrada en `MENU` de `frontend/src/menu.ts` (ruta `/admin/<nombre>`, icono de `lib/icons.ts` y `privileges`); si aún no tiene componente propio, márcala `pending: true` y `app-root` la muestra con `pending-page` (quitar `pending` al registrar su ruta).
+
+### Extensiones de `crud/`
+- `CrudTable`: sobrescribir `canEditRow(item)` / `canDeleteRow(item)` para ocultar acciones por fila.
+- `CrudTable`/`CrudPage`: `get permission()` (default `prefix`) fija el prefijo de los privilegios si el módulo comparte los de otro (ej. widgets usan `cms-page`).
+- `CrudPage`: `canCreate = false` oculta el botón "Nuevo" (listados de solo lectura).
+- `CrudForm`: `load(element)` / `reset()`; `repopulate()` tras cargar opciones asíncronas.
 
 ### FormField
 | Propiedad | Tipo | Descripción |
@@ -187,6 +226,8 @@ Registrar: importar en `frontend/src/index.ts` y añadir ruta `/admin/<nombre>` 
 | required | boolean | valida en submit |
 | disabled | boolean | no editable |
 | zone | top\|left\|right\|bottom | posición en el layout, default: top |
+| rows / mono / placeholder / help | number / boolean / string / string | `textarea`: filas y fuente monoespaciada (HTML/CSS/JS); `placeholder` y texto de `help` bajo el campo (cualquier tipo) |
+| groups | Record<string,Record<string,string>> | solo `checkboxes`: opciones agrupadas por categoría `{ grupo: { value: label } }` (con botón "Todos / ninguno") |
 | validator | (v) => boolean | validación custom |
 
 ## Skills (`.claude/commands/`)

@@ -4,12 +4,13 @@ import { MENU, MenuItem } from '../menu';
 import { SessionStatus } from '../lib/session';
 import { GlobalConfig } from '../global-config';
 import { icon } from '../lib/icons';
+import { I18n } from '../lib/i18n';
 
-/** Sidebar colapsable con submenús, filtrado por privilegios. En móvil es un panel deslizable (`open`). */
+/** Collapsible sidebar with submenus, filtered by privileges. On mobile it is a slide-in panel (`open`). */
 @customElement('app-sidebar')
 export class AppSidebar extends LitElement {
   @property({ type: Boolean }) collapsed = false;
-  @property({ type: Boolean }) open = false;           // solo móvil
+  @property({ type: Boolean }) open = false;           // mobile only
   @property() path = location.pathname;
   @state() private expanded = new Set<string>();
 
@@ -30,35 +31,35 @@ export class AppSidebar extends LitElement {
     return !!item.children?.some(c => this.isActive(c));
   }
 
-  private toggle(title: string) {
+  private toggle(label: string) {
     const next = new Set(this.expanded);
-    next.has(title) ? next.delete(title) : next.add(title);
+    next.has(label) ? next.delete(label) : next.add(label);
     this.expanded = next;
   }
 
   private link(item: MenuItem, nested = false): TemplateResult {
     const active = this.isActive(item);
     return html`
-      <a href=${item.path!} title=${item.title} @click=${() => this.dispatchEvent(new CustomEvent('navigate'))}
+      <a href=${item.path!} title=${I18n.t(item.label)} @click=${() => this.dispatchEvent(new CustomEvent('navigate'))}
          class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition
                 ${active ? 'bg-brand-500/25 text-white' : 'text-sidebar-text hover:bg-sidebar-hover hover:text-white'}
                 ${nested ? 'pl-4' : ''}">
         ${icon(item.icon ?? 'dashboard', nested ? 'size-4' : 'size-5')}
-        ${this.collapsed && !this.open ? '' : html`<span class="truncate">${item.title}</span>`}
+        ${this.collapsed && !this.open ? '' : html`<span class="truncate">${I18n.t(item.label)}</span>`}
       </a>`;
   }
 
   private group(item: MenuItem): TemplateResult {
     const compact = this.collapsed && !this.open;
-    const isOpen = this.expanded.has(item.title) || (this.isActive(item) && !this.expanded.has('!' + item.title));
+    const isOpen = this.expanded.has(item.label) || (this.isActive(item) && !this.expanded.has('!' + item.label));
     return html`
       <div>
         <button class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition
                        ${this.isActive(item) ? 'text-white' : 'text-sidebar-text hover:bg-sidebar-hover hover:text-white'}"
-                title=${item.title} @click=${() => this.toggle(item.title)}>
+                title=${I18n.t(item.label)} @click=${() => this.toggle(item.label)}>
           ${icon(item.icon ?? 'dashboard')}
           ${compact ? '' : html`
-            <span class="flex-1 truncate text-left">${item.title}</span>
+            <span class="flex-1 truncate text-left">${I18n.t(item.label)}</span>
             ${icon('chevron-down', `size-4 transition-transform ${isOpen ? 'rotate-180' : ''}`)}`}
         </button>
         ${isOpen && !compact ? html`

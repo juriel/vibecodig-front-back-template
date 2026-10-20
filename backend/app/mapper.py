@@ -20,7 +20,7 @@ def dto_to_entity(dto: BaseModel, entity_cls: type = None) -> object:
     if entity_cls is None:
         entity_cls = _registry.get(type(dto))
         if not entity_cls:
-            raise ValueError(f"Sin mapeo registrado para {type(dto).__name__}")
+            raise ValueError(f"No mapping registered for {type(dto).__name__}")
 
     col_fields = {c.key for c in entity_cls.__mapper__.column_attrs}
     rel_fields = {r.key: r for r in entity_cls.__mapper__.relationships}

@@ -7,6 +7,7 @@ import { SessionStatus } from '../lib/session';
 import { confirmDialog, toast } from '../lib/toast';
 import { icon } from '../lib/icons';
 import { btn } from '../lib/ui';
+import { I18n } from '../lib/i18n';
 
 type CrudView = 'list' | 'create' | 'edit' | 'detail';
 
@@ -15,6 +16,10 @@ export abstract class CrudPage<T extends object> extends LitElement {
   abstract label: string;
   abstract createTable(): CrudTable<T>;
   abstract createForm(): CrudForm<T>;
+  /** false → no "New" button (read-only listings). */
+  canCreate = true;
+  /** Privilege prefix (ACTION_PREFIX). Defaults to the module prefix. */
+  get permission(): string { return this.prefix; }
 
   @state() private view: CrudView = 'list';
 
@@ -31,9 +36,9 @@ export abstract class CrudPage<T extends object> extends LitElement {
     MessageBroker.subscribe(this as any, `${this.prefix}-edit`,    ({ detail }) => this._showEdit(detail.element));
     MessageBroker.subscribe(this as any, `${this.prefix}-delete`,  ({ detail }) => this._confirmDelete(detail.element));
     MessageBroker.subscribe(this as any, `${this.prefix}-detail`,  ({ detail }) => { this.view = 'detail'; this.requestUpdate(); });
-    MessageBroker.subscribe(this as any, `${this.prefix}-created`, () => { toast('Registro creado', 'success'); this._backToList(); });
+    MessageBroker.subscribe(this as any, `${this.prefix}-created`, () => { toast(I18n.t('crud.created'), 'success'); this._backToList(); });
     this.addEventListener('form-cancel', () => this._backToList());
-    MessageBroker.subscribe(this as any, `${this.prefix}-edited`,  () => { toast('Cambios guardados', 'success'); this._backToList(); });
+    MessageBroker.subscribe(this as any, `${this.prefix}-edited`,  () => { toast(I18n.t('crud.saved'), 'success'); this._backToList(); });
   }
 
   disconnectedCallback() {
@@ -55,31 +60,32 @@ export abstract class CrudPage<T extends object> extends LitElement {
   }
 
   private async _confirmDelete(target: T) {
-    const ok = await confirmDialog('Esta acción no se puede deshacer.', {
-      title: '¿Eliminar este elemento?', okLabel: 'Eliminar', danger: true,
+    const ok = await confirmDialog(I18n.t('crud.delete.text'), {
+      title: I18n.t('crud.delete.title'), okLabel: I18n.t('common.delete'), danger: true,
     });
     if (!ok) return;
     const service = (this._form as any).service;
     try {
       await service.delete(service.getKey(target));
-      toast('Registro eliminado', 'success');
+      toast(I18n.t('crud.deleted'), 'success');
       MessageBroker.publish(`${this.prefix}-update-list`, {});
-    } catch {
-      toast('No se pudo eliminar el registro', 'error');
+    } catch (err: any) {
+      const detail = err.response?.data?.detail;
+      toast(typeof detail === 'string' ? detail : I18n.t('crud.delete_error'), 'error');
     }
   }
 
   private _renderToolbar(): TemplateResult {
-    const canCreate = SessionStatus.getInstance().allowed(this.prefix, 'create');
+    const canCreate = this.canCreate && SessionStatus.getInstance().allowed(this.permission, 'create');
     return html`
       <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 class="text-2xl font-semibold tracking-tight text-slate-900">${this.label}</h1>
-          <p class="mt-0.5 text-sm text-slate-500">${this.view === 'list' ? 'Administra los registros.' : this.view === 'create' ? 'Crear un nuevo registro.' : 'Modificar el registro seleccionado.'}</p>
+          <p class="mt-0.5 text-sm text-slate-500">${I18n.t('crud.subtitle.' + this.view)}</p>
         </div>
         ${this.view === 'list'
-          ? (canCreate ? html`<button class=${btn('primary')} @click="${() => { this._form.reset(); this.view = 'create'; this.requestUpdate(); }}">${icon('plus', 'size-4')}Nuevo</button>` : '')
-          : html`<button class=${btn('secondary')} @click="${() => this._backToList()}">${icon('arrow-left', 'size-4')}Volver</button>`}
+          ? (canCreate ? html`<button class=${btn('primary')} @click="${() => { this._form.reset(); this.view = 'create'; this.requestUpdate(); }}">${icon('plus', 'size-4')}${I18n.t('common.new')}</button>` : '')
+          : html`<button class=${btn('secondary')} @click="${() => this._backToList()}">${icon('arrow-left', 'size-4')}${I18n.t('common.back')}</button>`}
       </div>`;
   }
 

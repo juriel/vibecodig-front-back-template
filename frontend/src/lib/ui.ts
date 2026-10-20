@@ -1,4 +1,4 @@
-/** Clases Tailwind compartidas para que todos los componentes luzcan igual. */
+/** Shared Tailwind classes so every component looks the same. */
 export const ui = {
   input: 'block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15 disabled:bg-slate-100 disabled:text-slate-500',
   label: 'mb-1.5 block text-sm font-medium text-slate-700',

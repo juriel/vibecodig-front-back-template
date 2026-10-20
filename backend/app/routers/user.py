@@ -10,7 +10,7 @@ from app.services import user_service
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-# Rutas estáticas antes que las dinámicas (/{login})
+# Static routes before dynamic ones (/{login})
 @router.get("/profiles")
 def list_profiles(db: Session = Depends(get_db), actor: User = Depends(require_privilege("VIEW_USER", "ADD_USER", "EDIT_USER"))):
     return user_service.list_profiles(db, actor)

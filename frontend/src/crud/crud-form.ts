@@ -4,6 +4,7 @@ import { MessageBroker } from './broker';
 import { CrudService } from './crud-service';
 import { FormField } from './types';
 import { ui, btn } from '../lib/ui';
+import { I18n } from '../lib/i18n';
 
 export abstract class CrudForm<T extends object> extends LitElement {
   abstract prefix: string;
@@ -27,7 +28,7 @@ export abstract class CrudForm<T extends object> extends LitElement {
     super.disconnectedCallback();
   }
 
-  /** Carga un elemento para editar. Funciona aunque el formulario aún no esté en el DOM. */
+  /** Loads an element for editing. Works even if the form is not in the DOM yet. */
   load(element: T) {
     this.element = { ...element };
     this.errors = {};
@@ -35,7 +36,7 @@ export abstract class CrudForm<T extends object> extends LitElement {
     this.updateComplete.then(() => { this.querySelector('form')?.reset(); this.repopulate(); });
   }
 
-  /** Limpia el estado para un alta nueva (evita arrastrar datos de una edición previa). */
+  /** Clears the state for a new record (avoids carrying over data from a previous edit). */
   reset() {
     this.element = {};
     this.errors = {};
@@ -43,7 +44,7 @@ export abstract class CrudForm<T extends object> extends LitElement {
     this.updateComplete.then(() => this.querySelector('form')?.reset());
   }
 
-  /** Vuelca `element` en los inputs. Llamar de nuevo si las opciones de un select/checkboxes llegan tarde. */
+  /** Writes `element` into the inputs. Call again if a select/checkboxes' options arrive late. */
   protected repopulate() { this._populateInputs(); }
 
   private _populateInputs() {
@@ -75,11 +76,26 @@ export abstract class CrudForm<T extends object> extends LitElement {
     this.fields().forEach(f => {
       const val = (dto as any)[f.key];
       if (f.required && (val === undefined || val === null || val === ''))
-        errs[f.key] = `${f.label} es requerido`;
+        errs[f.key] = I18n.t('form.required', f.label);
       if (f.validator && val !== undefined && !f.validator(val))
-        errs[f.key] = `${f.label} no es válido`;
+        errs[f.key] = I18n.t('form.invalid', f.label);
     });
     return errs;
+  }
+
+  /** Maps FastAPI/Pydantic validation errors to per-field messages (translated by error type). */
+  private _validationErrors(details: any[]): Record<string, string> {
+    const keys = new Set(this.fields().map(f => f.key));
+    const errors: Record<string, string> = {};
+    for (const d of details) {
+      const field = d.loc?.[1];
+      const i18nKey = 'validation.' + d.type;
+      const translated = I18n.t(i18nKey, ...Object.values(d.ctx ?? {}));
+      const message = translated === i18nKey ? d.msg : translated;
+      if (keys.has(field)) errors[field] = message;
+      else errors._global = [errors._global, message].filter(Boolean).join(' · ');
+    }
+    return errors;
   }
 
   private async _handleSubmit(e: SubmitEvent) {
@@ -100,10 +116,10 @@ export abstract class CrudForm<T extends object> extends LitElement {
       const detail = err.response?.data?.detail;
       if (detail && typeof detail === 'object' && !Array.isArray(detail) && detail.field_errors)
         this.errors = detail.field_errors;
-      else if (Array.isArray(detail))   // validación Pydantic (422)
-        this.errors['_global'] = detail.map((d: any) => `${(d.loc ?? []).slice(1).join('.')}: ${d.msg}`).join(' · ');
+      else if (Array.isArray(detail))   // Pydantic validation (422)
+        this.errors = this._validationErrors(detail as any[]);
       else
-        this.errors['_global'] = typeof detail === 'string' ? detail : detail?.error ?? 'Error al guardar';
+        this.errors = { _global: typeof detail === 'string' ? detail : I18n.t('crud.save_error') };
     } finally {
       this.saving = false;
     }
@@ -113,6 +129,35 @@ export abstract class CrudForm<T extends object> extends LitElement {
     const err = this.errors[f.key];
     const dis = f.disabled || this.saving;
     const cls = `${ui.input} ${err ? 'border-red-400 focus:border-red-500 focus:ring-red-500/15' : ''}`;
+    if (f.type === 'checkboxes' && f.groups) {
+      const toggleGroup = (e: Event) => {
+        const box = (e.currentTarget as HTMLElement).closest('[data-group]')!;
+        const inputs = Array.from(box.querySelectorAll<HTMLInputElement>('input[type=checkbox]'));
+        const all = inputs.every(i => i.checked);
+        inputs.forEach(i => { i.checked = !all; });
+      };
+      return html`
+        <fieldset class="mb-4">
+          <legend class=${ui.label}>${f.label}</legend>
+          <div class="space-y-3">
+            ${Object.entries(f.groups).map(([group, opts]) => html`
+              <div data-group class="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+                <div class="mb-2 flex items-center justify-between">
+                  <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">${group}</span>
+                  <button type="button" class="text-xs font-medium text-brand-600 hover:text-brand-700" ?disabled=${dis} @click=${toggleGroup}>${I18n.t('common.all_none')}</button>
+                </div>
+                <div class="grid gap-x-5 gap-y-2 sm:grid-cols-2">
+                  ${Object.entries(opts).map(([v, l]) => html`
+                    <label class="flex items-center gap-2 text-sm text-slate-700" title=${v}>
+                      <input type="checkbox" name="${f.key}" value="${v}" ?disabled=${dis}
+                             class="size-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />${l}
+                    </label>`)}
+                </div>
+              </div>`)}
+            ${Object.keys(f.groups).length ? '' : html`<span class="text-sm text-slate-400">${I18n.t('common.no_options')}</span>`}
+          </div>
+        </fieldset>`;
+    }
     if (f.type === 'checkboxes') {
       return html`
         <fieldset class="mb-4">
@@ -123,7 +168,7 @@ export abstract class CrudForm<T extends object> extends LitElement {
                 <input type="checkbox" name="${f.key}" value="${v}" ?disabled=${dis}
                        class="size-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />${l}
               </label>`)}
-            ${Object.keys(f.options ?? {}).length ? '' : html`<span class="text-sm text-slate-400">Sin opciones disponibles</span>`}
+            ${Object.keys(f.options ?? {}).length ? '' : html`<span class="text-sm text-slate-400">${I18n.t('common.no_options')}</span>`}
           </div>
         </fieldset>`;
     }
@@ -138,13 +183,15 @@ export abstract class CrudForm<T extends object> extends LitElement {
       <div class="mb-4">
         <label for="${f.key}" class=${ui.label}>${f.label}${f.required ? html`<span class="ml-0.5 text-red-500">*</span>` : ''}</label>
         ${f.type === 'textarea'
-          ? html`<textarea id="${f.key}" name="${f.key}" rows="4" class=${cls} ?disabled=${dis}></textarea>`
+          ? html`<textarea id="${f.key}" name="${f.key}" rows="${f.rows ?? 4}" placeholder=${f.placeholder ?? ''} spellcheck=${f.mono ? 'false' : 'true'} wrap=${f.mono ? 'off' : 'soft'}
+                           class="${cls} ${f.mono ? 'font-mono text-[13px] leading-5 whitespace-pre overflow-x-auto' : ''}" ?disabled=${dis}></textarea>`
           : f.type === 'select'
           ? html`<select id="${f.key}" name="${f.key}" class=${cls} ?disabled=${dis}>
-              <option value="">-- Seleccionar --</option>
+              <option value="">${I18n.t('common.select')}</option>
               ${Object.entries(f.options ?? {}).map(([v, l]) => html`<option value="${v}">${l}</option>`)}
             </select>`
-          : html`<input id="${f.key}" name="${f.key}" type="${f.type ?? 'text'}" class=${cls} ?disabled=${dis} />`}
+          : html`<input id="${f.key}" name="${f.key}" type="${f.type ?? 'text'}" placeholder=${f.placeholder ?? ''} class=${cls} ?disabled=${dis} />`}
+        ${f.help ? html`<p class="mt-1 text-xs text-slate-500">${f.help}</p>` : ''}
         ${err ? html`<p class="mt-1 text-xs text-red-600">${err}</p>` : ''}
       </div>`;
   }
@@ -162,7 +209,7 @@ export abstract class CrudForm<T extends object> extends LitElement {
 
     return html`
       <form class="${ui.card} max-w-3xl p-6" @submit="${this._handleSubmit.bind(this)}">
-        <h3 class="mb-5 text-base font-semibold text-slate-900">${this.mode === 'add' ? 'Nuevo registro' : 'Editar registro'}</h3>
+        <h3 class="mb-5 text-base font-semibold text-slate-900">${I18n.t(this.mode === 'add' ? 'crud.new_record' : 'crud.edit_record')}</h3>
         ${this.errors['_global'] ? html`
           <p class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">${this.errors['_global']}</p>` : ''}
         <div>${top.map(f => this._renderField(f))}</div>
@@ -173,8 +220,8 @@ export abstract class CrudForm<T extends object> extends LitElement {
           </div>` : ''}
         <div>${bottom.map(f => this._renderField(f))}</div>
         <div class="mt-2 flex justify-end gap-2 border-t border-slate-100 pt-5">
-          <button type="button" class=${btn('secondary')} @click=${() => this.dispatchEvent(new CustomEvent('form-cancel', { bubbles: true }))}>Cancelar</button>
-          <button type="submit" class=${btn('primary')} ?disabled="${this.saving}">${this.saving ? 'Guardando…' : 'Guardar'}</button>
+          <button type="button" class=${btn('secondary')} @click=${() => this.dispatchEvent(new CustomEvent('form-cancel', { bubbles: true }))}>${I18n.t('common.cancel')}</button>
+          <button type="submit" class=${btn('primary')} ?disabled="${this.saving}">${this.saving ? I18n.t('common.saving') : I18n.t('common.save')}</button>
         </div>
       </form>`;
   }

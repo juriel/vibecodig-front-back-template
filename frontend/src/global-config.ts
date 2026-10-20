@@ -1,13 +1,15 @@
+import { I18n } from './lib/i18n';
+
 export class GlobalConfig {
   private static instance: GlobalConfig;
   readonly apiUrl: string;
-  /** Nombre visible en login, sidebar y título. */
-  readonly appName = 'Panel de contenidos';
-  /** El panel (SPA con login) vive bajo este prefijo; `/` es el sitio público. Las rutas del router y del menú lo incluyen. */
+  /** Name shown on the login, the sidebar and the title (translatable: `app.name`). */
+  get appName(): string { return I18n.t('app.name'); }
+  /** The panel (SPA with login) lives under this prefix; `/` is the public site. Router and menu paths include it. */
   readonly adminBase = '/admin';
   /**
-   * true → rutas protegidas por login (/login) y acciones filtradas por privilegios.
-   * El backend expone POST /api/auth/login y GET /api/auth/me.
+   * true → routes protected by the login page and actions filtered by privileges.
+   * The backend exposes POST /api/auth/login and GET /api/auth/me.
    */
   readonly authRequired = true;
 

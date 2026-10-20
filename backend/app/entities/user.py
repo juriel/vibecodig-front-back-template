@@ -10,7 +10,7 @@ user_x_profile = Table(
 
 
 class User(Base):
-    """Usuario del backoffice. password = SHA-256(salt + clave) en hex (compatible con el sistema Comtor)."""
+    """Backoffice user. password = SHA-256(salt + password) as hex (compatible with the Comtor system)."""
     __tablename__ = "users"
 
     login = Column(String(64), primary_key=True)
@@ -24,5 +24,5 @@ class User(Base):
 
     @property
     def privileges(self) -> set[str]:
-        """Unión de los privilegios de todos sus perfiles."""
+        """Union of the privileges of all its profiles."""
         return {p.code for profile in self.profiles for p in profile.privileges}
