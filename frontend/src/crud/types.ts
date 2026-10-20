@@ -1,8 +1,8 @@
 export interface FormField {
   key: string;
   label: string;
-  type?: 'text' | 'email' | 'number' | 'password' | 'textarea' | 'select' | 'checkbox';
-  options?: Record<string, string>;   // para select: { value: label }
+  type?: 'text' | 'email' | 'number' | 'password' | 'textarea' | 'select' | 'checkbox' | 'checkboxes';
+  options?: Record<string, string>;   // para select / checkboxes: { value: label } (checkboxes → el valor es un array)
   required?: boolean;
   disabled?: boolean;
   zone?: 'top' | 'left' | 'right' | 'bottom'; // layout TLRB, default: top

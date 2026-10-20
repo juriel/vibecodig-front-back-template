@@ -5,6 +5,7 @@
 
 ## Módulos
 - [x] Auth (login JWT + privilegios)
+- [x] Usuarios (`/user`): CRUD sobre `users` con asignación de perfiles; borrado lógico (`deleted=1`)
 - [ ] Módulo 1
 
 ## Stack
@@ -73,6 +74,12 @@ frontend/
 |--------|------------------|-------------|
 | POST | /auth/login | `{login, password}` → `{token, user, privileges[]}` (401 si credenciales inválidas) |
 | GET | /auth/me | usuario y privilegios del token actual |
+| GET | /users | lista usuarios no borrados con sus perfiles (`VIEW_USER`) |
+| GET | /users/profiles | perfiles asignables por el usuario actual (`VIEW_USER`/`ADD_USER`/`EDIT_USER`) |
+| GET | /users/{login} | detalle (`VIEW_USER`) |
+| POST | /users | crea `{login, password, name, email?, profile_ids[]}` (`ADD_USER`); 409 si el login existe |
+| PUT | /users/{login} | edita `{name, email?, password?, profile_ids[]}`; password vacío = sin cambio (`EDIT_USER`) |
+| DELETE | /users/{login} | borrado lógico (`DELETE_USER`); no permite borrarse a sí mismo |
 
 ## Convenciones backend
 
@@ -80,7 +87,7 @@ frontend/
 - Variables `.env`: `JWT_SECRET` (obligatoria), `JWT_EXPIRE_MINUTES` (default 480).
 - `app/security.py`: `get_current_user` (exige `Authorization: Bearer`) y `require_privilege('VIEW_X', ...)` (al menos uno, o `ALL`). Proteger routers con `dependencies=[Depends(...)]`.
 - Privilegios con patrón `ACCION_ENTIDAD`: `ADD_`, `EDIT_`, `DELETE_`, `VIEW_`. El frontend los deriva con `SessionStatus.allowed('user','edit')` → `EDIT_USER` (create→ADD, list/view→VIEW).
-- Usuarios borrados (`deleted=1`) no pueden iniciar sesión. El login responde el mismo 401 para usuario inexistente o clave errónea.
+- Reglas de usuarios: solo un super usuario (`ALL`) puede asignar perfiles con `ALL` o modificar/borrar a otro super usuario. Usuarios borrados (`deleted=1`) no pueden iniciar sesión ni reutilizar su login. El login responde el mismo 401 para usuario inexistente o clave errónea.
 
 ### Capas
 - **Routers**: reciben el request, llaman al mapper, delegan al service. Sin lógica de negocio.
@@ -171,7 +178,7 @@ Registrar: importar en `frontend/src/index.ts` y añadir ruta en `frontend/src/a
 |-----------|------|-------------|
 | key | string | campo en el DTO |
 | label | string | texto del label |
-| type | text\|email\|number\|password\|textarea\|select\|checkbox | default: text |
+| type | text\|email\|number\|password\|textarea\|select\|checkbox\|checkboxes | default: text |
 | options | Record<string,string> | solo para select |
 | required | boolean | valida en submit |
 | disabled | boolean | no editable |

@@ -29,6 +29,7 @@ export class AppRoot extends LitElement {
       ...protect([
         { path: '/', component: 'home-page' },
         { path: '/example', component: 'example-page' },
+        { path: '/user', component: 'user-page' },
         // Add routes here
       ]),
       { path: '(.*)', redirect: '/' },

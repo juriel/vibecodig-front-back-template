@@ -16,10 +16,10 @@ export interface MenuItem {
 export const MENU: MenuItem[] = [
   { title: 'Inicio', icon: 'home', path: '/' },
   { title: 'Example', icon: 'dashboard', path: '/example' },
-  // {
-  //   title: 'Administración', icon: 'shield', children: [
-  //     { title: 'Usuarios', icon: 'users', path: '/user', privileges: ['VIEW_USER'] },
-  //     { title: 'Perfiles', icon: 'shield', path: '/profile', privileges: ['VIEW_PROFILE'] },
-  //   ],
-  // },
+  {
+    title: 'Administración', icon: 'shield', children: [
+      { title: 'Usuarios', icon: 'users', path: '/user', privileges: ['VIEW_USER'] },
+      // { title: 'Perfiles', icon: 'shield', path: '/profile', privileges: ['VIEW_PROFILE'] },
+    ],
+  },
 ];

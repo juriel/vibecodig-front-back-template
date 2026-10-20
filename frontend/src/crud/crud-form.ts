@@ -19,12 +19,7 @@ export abstract class CrudForm<T extends object> extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    MessageBroker.subscribe(this as any, `${this.prefix}-load-edit`, ({ detail }) => {
-      this.element = { ...detail.element };
-      this.mode = 'edit';
-      this.requestUpdate();
-      this.updateComplete.then(() => this._populateInputs());
-    });
+    MessageBroker.subscribe(this as any, `${this.prefix}-load-edit`, ({ detail }) => this.load(detail.element));
   }
 
   disconnectedCallback() {
@@ -32,17 +27,46 @@ export abstract class CrudForm<T extends object> extends LitElement {
     super.disconnectedCallback();
   }
 
+  /** Carga un elemento para editar. Funciona aunque el formulario aún no esté en el DOM. */
+  load(element: T) {
+    this.element = { ...element };
+    this.errors = {};
+    this.mode = 'edit';
+    this.updateComplete.then(() => { this.querySelector('form')?.reset(); this.repopulate(); });
+  }
+
+  /** Limpia el estado para un alta nueva (evita arrastrar datos de una edición previa). */
+  reset() {
+    this.element = {};
+    this.errors = {};
+    this.mode = 'add';
+    this.updateComplete.then(() => this.querySelector('form')?.reset());
+  }
+
+  /** Vuelca `element` en los inputs. Llamar de nuevo si las opciones de un select/checkboxes llegan tarde. */
+  protected repopulate() { this._populateInputs(); }
+
   private _populateInputs() {
     const inputs = this.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input,select,textarea');
     inputs.forEach(input => {
       const val = (this.element as any)[input.name];
-      if (val !== undefined) input.value = String(val);
+      if (val === undefined || val === null) return;
+      if (input instanceof HTMLInputElement && input.type === 'checkbox') {
+        input.checked = Array.isArray(val) ? val.map(String).includes(input.value) : !!val;
+      } else {
+        input.value = String(val);
+      }
     });
   }
 
   private _readFormData(form: HTMLFormElement): Partial<T> {
     const dto: any = { ...this.element };
-    new FormData(form).forEach((value, key) => { dto[key] = value; });
+    const data = new FormData(form);
+    data.forEach((value, key) => { dto[key] = value; });
+    this.fields().forEach(f => {
+      if (f.type === 'checkboxes') dto[f.key] = data.getAll(f.key);
+      else if (f.type === 'checkbox') dto[f.key] = data.has(f.key);
+    });
     return dto;
   }
 
@@ -74,10 +98,12 @@ export abstract class CrudForm<T extends object> extends LitElement {
       MessageBroker.publish(`${this.prefix}-${event}`, { element: result });
     } catch (err: any) {
       const detail = err.response?.data?.detail;
-      if (typeof detail === 'object' && detail.field_errors)
+      if (detail && typeof detail === 'object' && !Array.isArray(detail) && detail.field_errors)
         this.errors = detail.field_errors;
+      else if (Array.isArray(detail))   // validación Pydantic (422)
+        this.errors['_global'] = detail.map((d: any) => `${(d.loc ?? []).slice(1).join('.')}: ${d.msg}`).join(' · ');
       else
-        this.errors['_global'] = typeof detail === 'string' ? detail : 'Error al guardar';
+        this.errors['_global'] = typeof detail === 'string' ? detail : detail?.error ?? 'Error al guardar';
     } finally {
       this.saving = false;
     }
@@ -87,6 +113,20 @@ export abstract class CrudForm<T extends object> extends LitElement {
     const err = this.errors[f.key];
     const dis = f.disabled || this.saving;
     const cls = `${ui.input} ${err ? 'border-red-400 focus:border-red-500 focus:ring-red-500/15' : ''}`;
+    if (f.type === 'checkboxes') {
+      return html`
+        <fieldset class="mb-4">
+          <legend class=${ui.label}>${f.label}</legend>
+          <div class="flex flex-wrap gap-x-5 gap-y-2 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+            ${Object.entries(f.options ?? {}).map(([v, l]) => html`
+              <label class="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" name="${f.key}" value="${v}" ?disabled=${dis}
+                       class="size-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />${l}
+              </label>`)}
+            ${Object.keys(f.options ?? {}).length ? '' : html`<span class="text-sm text-slate-400">Sin opciones disponibles</span>`}
+          </div>
+        </fieldset>`;
+    }
     if (f.type === 'checkbox') {
       return html`
         <label class="mb-4 flex items-center gap-2 text-sm text-slate-700">

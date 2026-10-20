@@ -71,7 +71,7 @@ export class AppSidebar extends LitElement {
     return html`
       ${this.open ? html`<div class="fixed inset-0 z-30 bg-slate-900/50 md:hidden" @click=${() => this.dispatchEvent(new CustomEvent('navigate'))}></div>` : ''}
       <aside class="fixed inset-y-0 left-0 z-40 flex flex-col bg-sidebar transition-all duration-200
-                    ${this.open ? 'translate-x-0 w-64' : '-translate-x-full'} md:static md:translate-x-0
+                    ${this.open ? 'translate-x-0 w-64' : '-translate-x-full'} md:sticky md:top-0 md:h-screen md:translate-x-0
                     ${compact ? 'md:w-[4.5rem]' : 'md:w-64'}">
         <div class="flex h-16 items-center gap-3 border-b border-white/10 px-4">
           <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-500 text-sm font-bold text-white">${name.charAt(0)}</span>

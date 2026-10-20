@@ -43,14 +43,13 @@ export abstract class CrudPage<T extends object> extends LitElement {
 
   private _showEdit(element: T) {
     this.view = 'edit';
-    this._form.mode = 'edit';
-    MessageBroker.publish(`${this.prefix}-load-edit`, { element });
+    this._form.load(element);
     this.requestUpdate();
   }
 
   private _backToList() {
     this.view = 'list';
-    this._form.mode = 'add';
+    this._form.reset();
     MessageBroker.publish(`${this.prefix}-update-list`, {});
     this.requestUpdate();
   }
@@ -79,7 +78,7 @@ export abstract class CrudPage<T extends object> extends LitElement {
           <p class="mt-0.5 text-sm text-slate-500">${this.view === 'list' ? 'Administra los registros.' : this.view === 'create' ? 'Crear un nuevo registro.' : 'Modificar el registro seleccionado.'}</p>
         </div>
         ${this.view === 'list'
-          ? (canCreate ? html`<button class=${btn('primary')} @click="${() => { this.view = 'create'; this.requestUpdate(); }}">${icon('plus', 'size-4')}Nuevo</button>` : '')
+          ? (canCreate ? html`<button class=${btn('primary')} @click="${() => { this._form.reset(); this.view = 'create'; this.requestUpdate(); }}">${icon('plus', 'size-4')}Nuevo</button>` : '')
           : html`<button class=${btn('secondary')} @click="${() => this._backToList()}">${icon('arrow-left', 'size-4')}Volver</button>`}
       </div>`;
   }
