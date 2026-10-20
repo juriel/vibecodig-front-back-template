@@ -7,7 +7,7 @@
 - [ ] Módulo 1
 
 ## Stack
-- Backend: Python + FastAPI, PostgreSQL + SQLAlchemy (`backend/`)
+- Backend: Python + FastAPI, MariaDB/MySQL + SQLAlchemy (PyMySQL) (`backend/`)
 - Frontend: Lit 3 (Web Components + TypeScript, light DOM), Tailwind CSS 4 (postcss-loader), @vaadin/router, Axios, Webpack 5 (`frontend/`)
 - Servidor único: `server.py` (FastAPI) → API en `/api`, frontend compilado y estáticos en `/`
 - Auth: (agregar según proyecto)
@@ -16,8 +16,8 @@
 ## Cómo correr
 ```bash
 # 1. Crear DB (solo la primera vez)
-sudo -u postgres psql -c "CREATE USER <db_user> WITH PASSWORD '<db_pass>';"
-sudo -u postgres psql -c "CREATE DATABASE <db_name> OWNER <db_user>;"
+mysql -u root -p -e "CREATE DATABASE <db_name> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u root -p -e "CREATE USER '<db_user>'@'localhost' IDENTIFIED BY '<db_pass>'; GRANT ALL PRIVILEGES ON <db_name>.* TO '<db_user>'@'localhost'; FLUSH PRIVILEGES;"
 
 # 2. Dependencias y configuración
 cp .env.example .env            # editar con credenciales reales
@@ -174,7 +174,7 @@ Registrar: importar en `frontend/src/index.ts` y añadir ruta en `frontend/src/a
 - `/backend-new-module <nombre>` — entidad + DTO + service + router + montaje en `backend/main.py`
 - `/frontend-new-module <nombre>` — 4 archivos CRUD + registro en index y router
 - `/frontend-sync-endpoints` — lee `/api/openapi.json` y actualiza la tabla de endpoints
-- `/backend-db` — inspecciona la DB con psql
+- `/backend-db` — inspecciona la DB con el cliente `mysql`
 
 ## Mantenimiento
 Al cerrar un objetivo considerable: actualizar **Módulos**, **Endpoints** y **Estructura** de este archivo.

@@ -7,7 +7,7 @@ Cuando el usuario invoque `/backend-init-project`, completar la configuración i
 ### 1. Preguntar al usuario
 - Nombre del proyecto
 - Descripción / objetivo
-- Nombre de la DB (PostgreSQL)
+- Nombre de la DB (MariaDB/MySQL)
 - Puerto (default: 8000; lo usa `server.py`/uvicorn)
 - Módulos iniciales a crear
 

@@ -1,25 +1,26 @@
 # Skill: DB Inspector
 
-Cuando el usuario invoque este skill, usá psql para inspeccionar o modificar la base de datos del proyecto.
-Leer el `.env` del proyecto para obtener el valor real de `DATABASE_URL` antes de ejecutar.
+Cuando el usuario invoque este skill, usá el cliente `mysql` para inspeccionar o modificar la base de datos del proyecto (MariaDB/MySQL).
+Leer el `.env` del proyecto para obtener `DATABASE_URL` (`mysql+pymysql://user:pass@host/db`) y extraer usuario, contraseña, host y base antes de ejecutar.
+Pasar la contraseña con `MYSQL_PWD=<pass>` en vez de `-p` para no exponerla en la línea de comandos.
 
 ## Ver tablas
 ```bash
-psql $DATABASE_URL -c "\dt"
+MYSQL_PWD=<pass> mysql -u <user> -h <host> <db> -e "SHOW TABLES;"
 ```
 
 ## Ver columnas de una tabla
 ```bash
-psql $DATABASE_URL -c "\d nombre_tabla"
+MYSQL_PWD=<pass> mysql -u <user> -h <host> <db> -e "DESCRIBE nombre_tabla;"
 ```
 
 ## Contar registros por tabla
 ```bash
-psql $DATABASE_URL -c "SELECT schemaname, tablename, n_live_tup FROM pg_stat_user_tables ORDER BY n_live_tup DESC;"
+MYSQL_PWD=<pass> mysql -u <user> -h <host> <db> -e "SELECT table_name, table_rows FROM information_schema.tables WHERE table_schema = DATABASE() ORDER BY table_rows DESC;"
 ```
 
 ## Consulta ad-hoc
 Ejecutá la query que el usuario pida directamente con:
 ```bash
-psql $DATABASE_URL -c "<query>"
+MYSQL_PWD=<pass> mysql -u <user> -h <host> <db> -e "<query>"
 ```

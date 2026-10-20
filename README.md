@@ -2,20 +2,20 @@
 
 Plantilla full-stack en un solo proyecto: **backend FastAPI** bajo `/api` y **frontend Lit + TypeScript** compilado con Webpack, ambos servidos por el mismo proceso y el mismo puerto.
 
-- Backend: Python, FastAPI, SQLAlchemy, PostgreSQL
+- Backend: Python, FastAPI, SQLAlchemy, MariaDB/MySQL
 - Frontend: Lit 3, @vaadin/router, Axios, Webpack 5
 - Un único origen: sin CORS ni segundo servidor
 
 ## Requisitos
 - Python 3.10+
 - Node.js 18+ y npm
-- PostgreSQL
+- MariaDB o MySQL
 
 ## Puesta en marcha
 ```bash
 # 1. Base de datos (solo la primera vez)
-sudo -u postgres psql -c "CREATE USER <db_user> WITH PASSWORD '<db_pass>';"
-sudo -u postgres psql -c "CREATE DATABASE <db_name> OWNER <db_user>;"
+mysql -u root -p -e "CREATE DATABASE <db_name> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u root -p -e "CREATE USER '<db_user>'@'localhost' IDENTIFIED BY '<db_pass>'; GRANT ALL PRIVILEGES ON <db_name>.* TO '<db_user>'@'localhost'; FLUSH PRIVILEGES;"
 
 # 2. Configuración y dependencias
 cp .env.example .env          # editar DATABASE_URL
