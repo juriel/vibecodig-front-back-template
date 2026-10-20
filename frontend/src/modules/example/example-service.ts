@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { GlobalConfig } from '../../global-config';
 
-const BASE = GlobalConfig.getInstance().apiUrl + 'example';
+const BASE = GlobalConfig.getInstance().apiUrl + 'examples';
 
 export interface ExampleDTO {
   id?: number;

@@ -17,7 +17,7 @@ export class LoginPage extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    if (SessionStatus.getInstance().isLoggedIn) Router.go('/');
+    if (SessionStatus.getInstance().isLoggedIn) Router.go(GlobalConfig.getInstance().adminBase);
   }
 
   private async submit(e: SubmitEvent) {
@@ -28,7 +28,7 @@ export class LoginPage extends LitElement {
     try {
       const session = await AuthService.login({ login: String(f.get('login')), password: String(f.get('password')) });
       SessionStatus.getInstance().save(session);
-      Router.go('/');
+      Router.go(GlobalConfig.getInstance().adminBase);
     } catch (err: any) {
       const d = err.response?.data?.detail;
       this.error = err.response?.status === 401 ? 'Usuario o contraseña incorrectos.'

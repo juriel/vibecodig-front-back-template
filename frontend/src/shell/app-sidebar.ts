@@ -23,7 +23,10 @@ export class AppSidebar extends LitElement {
   }
 
   private isActive(item: MenuItem): boolean {
-    if (item.path) return item.path === '/' ? this.path === '/' : this.path === item.path || this.path.startsWith(item.path + '/');
+    if (item.path) {
+      const base = GlobalConfig.getInstance().adminBase;
+      return item.path === base ? this.path === base : this.path === item.path || this.path.startsWith(item.path + '/');
+    }
     return !!item.children?.some(c => this.isActive(c));
   }
 

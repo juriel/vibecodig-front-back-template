@@ -1,26 +1,26 @@
 # Skill: DB Inspector
 
-Cuando el usuario invoque este skill, usá el cliente `mysql` para inspeccionar o modificar la base de datos del proyecto (MariaDB/MySQL).
-Leer el `.env` del proyecto para obtener `DATABASE_URL` (`mysql+pymysql://user:pass@host/db`) y extraer usuario, contraseña, host y base antes de ejecutar.
-Pasar la contraseña con `MYSQL_PWD=<pass>` en vez de `-p` para no exponerla en la línea de comandos.
+Cuando el usuario invoque este skill, usá el cliente `mysql` para inspeccionar o modificar la base de datos del proyecto.
+Leer el `.env` del proyecto para obtener el valor real de `DATABASE_URL` (`mysql+pymysql://user:pass@host/db`) antes de ejecutar.
+No pasar la contraseña por línea de comandos: usar un archivo de opciones con permisos 600 (`[client]` user/password/host) vía `--defaults-extra-file`. En los ejemplos, `$MYCNF` es ese archivo y `<db>` el nombre de la base.
 
 ## Ver tablas
 ```bash
-MYSQL_PWD=<pass> mysql -u <user> -h <host> <db> -e "SHOW TABLES;"
+mysql --defaults-extra-file=$MYCNF <db> -e "SHOW TABLES;"
 ```
 
 ## Ver columnas de una tabla
 ```bash
-MYSQL_PWD=<pass> mysql -u <user> -h <host> <db> -e "DESCRIBE nombre_tabla;"
+mysql --defaults-extra-file=$MYCNF <db> -e "SHOW CREATE TABLE nombre_tabla\G"
 ```
 
 ## Contar registros por tabla
 ```bash
-MYSQL_PWD=<pass> mysql -u <user> -h <host> <db> -e "SELECT table_name, table_rows FROM information_schema.tables WHERE table_schema = DATABASE() ORDER BY table_rows DESC;"
+mysql --defaults-extra-file=$MYCNF <db> -e "SELECT table_name, table_rows FROM information_schema.tables WHERE table_schema = DATABASE() ORDER BY table_rows DESC;"
 ```
 
 ## Consulta ad-hoc
 Ejecutá la query que el usuario pida directamente con:
 ```bash
-MYSQL_PWD=<pass> mysql -u <user> -h <host> <db> -e "<query>"
+mysql --defaults-extra-file=$MYCNF <db> -e "<query>"
 ```

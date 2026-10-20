@@ -5,28 +5,29 @@
 
 ## Módulos
 - [x] Auth (login JWT + privilegios)
-- [x] Usuarios (`/user`): CRUD sobre `users` con asignación de perfiles; borrado lógico (`deleted=1`)
-- [ ] Módulo 1
+- [x] Panel `/admin`: menú lateral + inicio con tarjetas; secciones CMS aún "en construcción" (`pending-page`)
+- [x] Usuarios (`/admin/user`): CRUD sobre `users` con asignación de perfiles; borrado lógico (`deleted=1`)
 
 ## Stack
-- Backend: Python + FastAPI, MariaDB/MySQL + SQLAlchemy (PyMySQL) (`backend/`)
+- Backend: Python + FastAPI, MariaDB/MySQL + SQLAlchemy (driver PyMySQL, `mysql+pymysql://`) (`backend/`)
 - Frontend: Lit 3 (Web Components + TypeScript, light DOM), Tailwind CSS 4 (postcss-loader), @vaadin/router, Axios, Webpack 5 (`frontend/`)
-- Servidor único: `server.py` (FastAPI) → API en `/api`, frontend compilado y estáticos en `/`
+- Servidor único: `server.py` (FastAPI) → API en `/api`, panel en `/admin`, sitio público en `/`
 - Auth: JWT (PyJWT) sobre el esquema existente `users → user_x_profile → profile → profile_x_privilege → privilege`. Clave: `SHA-256(salt + password)` en hex. Privilegio `ALL` = todo; los permisos del usuario son la unión de los de todos sus perfiles. La base se usa tal cual: la app NO crea ni modifica esas tablas.
 - Deploy: (Railway / Render / local)
 
 ## Cómo correr
 ```bash
 # 1. Crear DB (solo la primera vez)
-mysql -u root -p -e "CREATE DATABASE <db_name> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u root -p -e "CREATE USER '<db_user>'@'localhost' IDENTIFIED BY '<db_pass>'; GRANT ALL PRIVILEGES ON <db_name>.* TO '<db_user>'@'localhost'; FLUSH PRIVILEGES;"
+sudo mysql -e "CREATE DATABASE <db_name> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo mysql -e "CREATE USER '<db_user>'@'localhost' IDENTIFIED BY '<db_pass>'; GRANT ALL ON <db_name>.* TO '<db_user>'@'localhost';"
 
 # 2. Dependencias y configuración
-cp .env.example .env            # editar con credenciales reales
+cp .env.example .env            # editar con credenciales reales (DATABASE_URL, JWT_SECRET)
 npm run install:all             # pip install -r requirements.txt + npm install en frontend/
+python backend/create_user.py <login> "<Nombre>" [--profile ID]   # crea un usuario (pide la contraseña; perfil 1 = Administrator)
 
 # 3a. Producción / simple: compila el frontend y levanta un solo server
-npm start                       # http://localhost:8000  (API en /api, docs en /api/docs)
+npm start                       # http://localhost:8000 sitio público · /admin panel con login · /api/docs
 
 # 3b. Desarrollo: dos terminales
 npm run dev:front               # webpack --watch → frontend/web/dist/app.js
@@ -36,10 +37,11 @@ El navegador siempre habla con el mismo origen: `GlobalConfig.apiUrl = '/api/'`.
 
 ## Estructura
 ```
-server.py                  # entry point: monta backend en /api, sirve frontend/web + fallback SPA
+server.py                  # entry point: monta backend en /api, /admin → SPA (index.html), / → sitio.html público
 requirements.txt, .env.example, package.json (scripts raíz)
 backend/
 ├── main.py                # define la sub-app `api` (FastAPI): routers + create_all (NO se ejecuta directo)
+├── create_user.py         # crea usuarios desde la terminal (esquema users/user_x_profile)
 └── app/
     ├── db.py              # conexión, Base, get_db (lee ../.env de la raíz)
     ├── security.py        # JWT, hash de clave, get_current_user, require_privilege
@@ -52,20 +54,22 @@ backend/
 frontend/
 ├── package.json, webpack.config.js, tsconfig.json
 ├── src/
-│   ├── index.ts, app-root.ts (shell + rutas + guard), global-config.ts (appName, authRequired), menu.ts (menú lateral), styles.css (@theme Tailwind)
+│   ├── index.ts, app-root.ts (shell + rutas /admin + guard), global-config.ts (appName, adminBase, authRequired), menu.ts (menú lateral y tarjetas del inicio), styles.css (@theme Tailwind)
 │   ├── shell/             # app-sidebar, app-header
 │   ├── crud/              # framework CRUD genérico (tabla con búsqueda/paginación, form, page)
 │   ├── lib/               # utilidades genéricas: ui (clases Tailwind), icons, i18n, validators, date, session (auth+interceptors), toast/confirmDialog, select-from-service, finder-search
 │   └── modules/<nombre>/  # service / table / form / page por módulo
 └── web/
-    ├── index.html
+    ├── index.html         # panel (SPA) en /admin
+    ├── sitio.html         # página pública provisional en /
     └── dist/app.js        # generado por webpack (ignorado por git), servido en /dist/app.js
 ```
 
 ## Reglas de integración
 - Rutas del backend se declaran sin prefijo `/api` (lo añade el mount). Routers se incluyen en `backend/main.py` con `api.include_router(...)`.
 - Los services del frontend usan `GlobalConfig.getInstance().apiUrl + '<recurso>'` (sin `/` inicial en `<recurso>`).
-- Cualquier ruta que no sea `/api/*` ni un archivo existente devuelve `index.html` (el router de Vaadin resuelve en cliente). Por eso `index.html` referencia `/dist/app.js` con ruta absoluta.
+- El panel vive en `/admin`: cualquier ruta bajo `/admin` devuelve `index.html` (el router de Vaadin resuelve en cliente) y pide login (si `authRequired`). Las rutas del router y las de `menu.ts` van con prefijo `/admin` (`GlobalConfig.adminBase`); el login es `/admin/login`. `index.html` referencia `/dist/app.js` con ruta absoluta.
+- El resto es el sitio público, sin login: `/` sirve `sitio.html`, los archivos de `web/` se sirven tal cual y cualquier otra ruta da 404.
 - Tras cambiar código del frontend hay que recompilar (`npm run build` o `dev:front`); el server no compila.
 - Ejecutar siempre desde la raíz con `server:app` (no `main:app`).
 
@@ -171,7 +175,7 @@ export class NombrePage extends CrudPage<NombreDTO> {
   createForm  = () => new NombreForm();
 }
 ```
-Registrar: importar en `frontend/src/index.ts` y añadir ruta en `frontend/src/app-root.ts`.
+Registrar: importar en `frontend/src/index.ts` y añadir ruta `/admin/<nombre>` en `frontend/src/app-root.ts` (antes de las secciones pendientes). Para que aparezca en el menú y en las tarjetas del inicio, agregar la entrada en `MENU` de `frontend/src/menu.ts` (ruta `/admin/<nombre>`, icono de `lib/icons.ts` y `privileges`); si aún no tiene componente propio, márcala `pending: true` y `app-root` la muestra con `pending-page` (quitar `pending` al registrar su ruta).
 
 ### FormField
 | Propiedad | Tipo | Descripción |

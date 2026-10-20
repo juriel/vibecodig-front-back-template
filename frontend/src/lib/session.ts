@@ -50,7 +50,7 @@ export class SessionStatus {
     return this.can(`${verb}_${prefix.toUpperCase().replace(/-/g, '_')}`);
   }
 
-  logout(redirect = '/login') {
+  logout(redirect = GlobalConfig.getInstance().adminBase + '/login') {
     localStorage.removeItem(SessionStatus.KEY);
     window.location.href = redirect;
   }

@@ -2,20 +2,20 @@
 
 Plantilla full-stack en un solo proyecto: **backend FastAPI** bajo `/api` y **frontend Lit + TypeScript** compilado con Webpack, ambos servidos por el mismo proceso y el mismo puerto.
 
-- Backend: Python, FastAPI, SQLAlchemy, MariaDB/MySQL
-- Frontend: Lit 3, @vaadin/router, Axios, Webpack 5
+- Backend: Python, FastAPI, SQLAlchemy, MySQL/MariaDB (PyMySQL)
+- Frontend: Lit 3, Tailwind CSS 4, @vaadin/router, Axios, Webpack 5
 - Un único origen: sin CORS ni segundo servidor
 
 ## Requisitos
 - Python 3.10+
 - Node.js 18+ y npm
-- MariaDB o MySQL
+- MySQL 8 o MariaDB 10.5+
 
 ## Puesta en marcha
 ```bash
 # 1. Base de datos (solo la primera vez)
-mysql -u root -p -e "CREATE DATABASE <db_name> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u root -p -e "CREATE USER '<db_user>'@'localhost' IDENTIFIED BY '<db_pass>'; GRANT ALL PRIVILEGES ON <db_name>.* TO '<db_user>'@'localhost'; FLUSH PRIVILEGES;"
+sudo mysql -e "CREATE DATABASE <db_name> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo mysql -e "CREATE USER '<db_user>'@'localhost' IDENTIFIED BY '<db_pass>'; GRANT ALL ON <db_name>.* TO '<db_user>'@'localhost';"
 
 # 2. Configuración y dependencias
 cp .env.example .env          # editar DATABASE_URL
@@ -23,12 +23,13 @@ python3 -m venv .venv && source .venv/bin/activate
 npm run install:all           # pip install -r requirements.txt + npm install en frontend/
 
 # 3. Compilar y levantar
-npm start                     # http://localhost:8000
+npm start                     # http://localhost:8000 (sitio) y http://localhost:8000/admin (panel con login)
 ```
 
 | URL | Contenido |
 |-----|-----------|
-| `/` | Frontend (SPA) |
+| `/` | Sitio público (sin login) |
+| `/admin` | Panel (SPA) con login |
 | `/dist/app.js` | JavaScript compilado por Webpack |
 | `/api/...` | Backend |
 | `/api/docs` | Swagger UI |
@@ -62,13 +63,13 @@ backend/
 └── app/                 # db, entities, dtos, services, routers, mapper, repository
 frontend/
 ├── src/                 # index.ts, app-root.ts, crud/ (framework genérico), modules/
-└── web/                 # index.html y dist/ (generado)
+└── web/                 # index.html (panel /admin), sitio.html (público /) y dist/ (generado)
 .claude/commands/        # skills de Claude Code: backend-* y frontend-*
 ```
 
 ## Cómo funciona la integración
 - `server.py` crea la app principal, monta el backend con `app.mount("/api", api)` y sirve `frontend/web/`.
-- Cualquier ruta que no sea `/api/*` ni un archivo existente devuelve `index.html` (fallback SPA), así que recargar en `/example` funciona.
+- Cualquier ruta bajo `/admin` devuelve `index.html` (fallback SPA), así que recargar en `/admin/example` funciona. `/` es el sitio público (`sitio.html`), sin login.
 - El frontend usa `GlobalConfig.apiUrl = '/api/'`.
 - Las rutas del backend se declaran **sin** prefijo `/api`.
 - `create_all` se ejecuta en el lifespan de `server.py`, porque una sub-app montada no recibe sus propios eventos de arranque.

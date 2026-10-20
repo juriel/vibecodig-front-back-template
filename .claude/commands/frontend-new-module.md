@@ -85,8 +85,9 @@ import './modules/<nombre>/<nombre>.form';
 
 ## 6. Agregar ruta en `frontend/src/app-root.ts`
 ```typescript
-{ path: '/<nombre>', component: '<nombre>-page' }
+{ path: `${ADMIN}/<nombre>`, component: '<nombre>-page' }
 ```
+Y agregar la entrada en `frontend/src/menu.ts` (`path: `${A}/<nombre>``, `icon`, `privileges: ['VIEW_<NOMBRE>']`).
 
 ## 7. Actualizar CLAUDE.md
 - Marcar módulo como ✅ en `## Módulos`

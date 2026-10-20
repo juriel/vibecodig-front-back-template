@@ -3,14 +3,25 @@ import { customElement, state } from 'lit/decorators.js';
 import { Router, Commands, Context } from '@vaadin/router';
 import { SessionStatus } from './lib/session';
 import { GlobalConfig } from './global-config';
+import { MENU, leaves } from './menu';
 import './shell/app-sidebar';
 import './shell/app-header';
 
-/** Redirige a /login si la auth está activa y no hay sesión. */
-const requireAuth = (_ctx: Context, commands: Commands) =>
-  !GlobalConfig.getInstance().authRequired || SessionStatus.getInstance().isLoggedIn
-    ? undefined
-    : commands.redirect('/login');
+const ADMIN = GlobalConfig.getInstance().adminBase;
+const LOGIN = `${ADMIN}/login`;
+
+/**
+ * Guard de rutas (solo si `authRequired`): sin sesión → login; sin ninguno de los privilegios de su
+ * entrada en menu.ts → inicio. El backend igualmente valida cada endpoint.
+ */
+const requireAuth = (ctx: Context, commands: Commands) => {
+  if (!GlobalConfig.getInstance().authRequired) return undefined;
+  const session = SessionStatus.getInstance();
+  if (!session.isLoggedIn) return commands.redirect(LOGIN);
+  const needed = leaves(MENU).find(i => i.path === ctx.pathname)?.privileges;
+  if (needed?.length && !needed.some(p => session.can(p))) return commands.redirect(ADMIN);
+  return undefined;
+};
 
 const protect = (routes: any[]) => routes.map(r => ({ ...r, action: requireAuth }));
 
@@ -25,14 +36,14 @@ export class AppRoot extends LitElement {
   firstUpdated() {
     const router = new Router(this.querySelector('#outlet')!);
     router.setRoutes([
-      { path: '/login', component: 'login-page' },
+      { path: LOGIN, component: 'login-page' },
       ...protect([
-        { path: '/', component: 'home-page' },
-        { path: '/example', component: 'example-page' },
-        { path: '/user', component: 'user-page' },
-        // Add routes here
+        { path: ADMIN, component: 'home-page' },
+        { path: `${ADMIN}/user`, component: 'user-page' },
+        // Add routes here (antes de las secciones pendientes)
+        ...leaves(MENU).filter(i => i.pending).map(i => ({ path: i.path!, component: 'pending-page' })),
       ]),
-      { path: '(.*)', redirect: '/' },
+      { path: `${ADMIN}/(.*)`, redirect: ADMIN },
     ]);
     window.addEventListener('vaadin-router-location-changed', () => {
       this.path = location.pathname;
@@ -41,7 +52,7 @@ export class AppRoot extends LitElement {
   }
 
   render() {
-    const shell = this.path !== '/login';
+    const shell = this.path !== LOGIN;
     return html`
       <div class="flex min-h-screen">
         ${shell ? html`
