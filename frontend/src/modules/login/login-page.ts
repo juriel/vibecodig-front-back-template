@@ -15,6 +15,11 @@ export class LoginPage extends LitElement {
 
   createRenderRoot() { return this; }
 
+  connectedCallback() {
+    super.connectedCallback();
+    if (SessionStatus.getInstance().isLoggedIn) Router.go('/');
+  }
+
   private async submit(e: SubmitEvent) {
     e.preventDefault();
     const f = new FormData(e.target as HTMLFormElement);

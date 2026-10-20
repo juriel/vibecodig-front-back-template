@@ -6,6 +6,10 @@ Cuando el usuario invoque `/backend-new-module <nombre>`, crear un módulo compl
 
 ---
 
+> **Auth:** proteger el router con `dependencies=[Depends(require_privilege('VIEW_<NOMBRE>'))]` (importar de `app.security`) y los endpoints de escritura con `ADD_`/`EDIT_`/`DELETE_<NOMBRE>`. Los códigos deben existir en la tabla `privilege`.
+
+---
+
 ## 1. Crear entidad en `backend/app/entities/<nombre>.py`
 
 Heredar de `Base`. Siempre incluir `id` (PK) y `created_at`.

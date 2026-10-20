@@ -5,10 +5,11 @@ from app.entities.example import Example
 from app.dtos.example_dto import ExampleCreateDTO
 from app.services import example_service
 from app import mapper
+from app.security import get_current_user
 
 mapper.register(ExampleCreateDTO, Example)
 
-router = APIRouter(prefix="/examples", tags=["examples"])
+router = APIRouter(prefix="/examples", tags=["examples"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("")

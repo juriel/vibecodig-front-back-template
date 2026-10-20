@@ -4,13 +4,14 @@
 [Descripción breve del propósito del proyecto]
 
 ## Módulos
+- [x] Auth (login JWT + privilegios)
 - [ ] Módulo 1
 
 ## Stack
 - Backend: Python + FastAPI, MariaDB/MySQL + SQLAlchemy (PyMySQL) (`backend/`)
 - Frontend: Lit 3 (Web Components + TypeScript, light DOM), Tailwind CSS 4 (postcss-loader), @vaadin/router, Axios, Webpack 5 (`frontend/`)
 - Servidor único: `server.py` (FastAPI) → API en `/api`, frontend compilado y estáticos en `/`
-- Auth: (agregar según proyecto)
+- Auth: JWT (PyJWT) sobre el esquema existente `users → user_x_profile → profile → profile_x_privilege → privilege`. Clave: `SHA-256(salt + password)` en hex. Privilegio `ALL` = todo; los permisos del usuario son la unión de los de todos sus perfiles. La base se usa tal cual: la app NO crea ni modifica esas tablas.
 - Deploy: (Railway / Render / local)
 
 ## Cómo correr
@@ -40,6 +41,7 @@ backend/
 ├── main.py                # define la sub-app `api` (FastAPI): routers + create_all (NO se ejecuta directo)
 └── app/
     ├── db.py              # conexión, Base, get_db (lee ../.env de la raíz)
+    ├── security.py        # JWT, hash de clave, get_current_user, require_privilege
     ├── mapper.py          # mapper genérico DTO → entidad
     ├── repository.py      # BaseRepository, BaseService, Page
     ├── entities/          # entidades SQLAlchemy (registrar en __init__.py)
@@ -69,9 +71,16 @@ frontend/
 ## Endpoints
 | Método | Path (bajo /api) | Descripción |
 |--------|------------------|-------------|
-| | | |
+| POST | /auth/login | `{login, password}` → `{token, user, privileges[]}` (401 si credenciales inválidas) |
+| GET | /auth/me | usuario y privilegios del token actual |
 
 ## Convenciones backend
+
+### Auth y privilegios
+- Variables `.env`: `JWT_SECRET` (obligatoria), `JWT_EXPIRE_MINUTES` (default 480).
+- `app/security.py`: `get_current_user` (exige `Authorization: Bearer`) y `require_privilege('VIEW_X', ...)` (al menos uno, o `ALL`). Proteger routers con `dependencies=[Depends(...)]`.
+- Privilegios con patrón `ACCION_ENTIDAD`: `ADD_`, `EDIT_`, `DELETE_`, `VIEW_`. El frontend los deriva con `SessionStatus.allowed('user','edit')` → `EDIT_USER` (create→ADD, list/view→VIEW).
+- Usuarios borrados (`deleted=1`) no pueden iniciar sesión. El login responde el mismo 401 para usuario inexistente o clave errónea.
 
 ### Capas
 - **Routers**: reciben el request, llaman al mapper, delegan al service. Sin lógica de negocio.

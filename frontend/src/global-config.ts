@@ -5,9 +5,9 @@ export class GlobalConfig {
   readonly appName = 'Project Name';
   /**
    * true → rutas protegidas por login (/login) y acciones filtradas por privilegios.
-   * Dejar en false hasta que el backend exponga POST /api/auth/login.
+   * El backend expone POST /api/auth/login y GET /api/auth/me.
    */
-  readonly authRequired = false;
+  readonly authRequired = true;
 
   private constructor() {
     this.apiUrl = '/api/';

@@ -28,12 +28,26 @@ export class SessionStatus {
   /** true si tiene el privilegio o el comodín "ALL". */
   can(code: string) { return this.hasPrivilege(code) || this.hasPrivilege('ALL'); }
 
-  get isLoggedIn() { return !!this.token; }
+  /** true si hay token y no ha expirado (se lee el `exp` del JWT; el servidor igual lo valida). */
+  get isLoggedIn(): boolean {
+    const t = this.token;
+    if (!t) return false;
+    try {
+      const payload = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      return !payload.exp || payload.exp * 1000 > Date.now();
+    } catch {
+      return false;
+    }
+  }
 
-  /** Permiso para una acción de un módulo, p. ej. allowed('user','edit') → USER_EDIT. Siempre true si auth está desactivada. */
+  /**
+   * Permiso para una acción de un módulo según la convención de la base: ACCION_ENTIDAD,
+   * p. ej. allowed('user','edit') → EDIT_USER; create → ADD_, list/view → VIEW_. Siempre true si auth está desactivada.
+   */
   allowed(prefix: string, action: 'list' | 'create' | 'edit' | 'delete' | 'view'): boolean {
     if (!GlobalConfig.getInstance().authRequired) return true;
-    return this.can(`${prefix.toUpperCase().replace(/-/g, '_')}_${action.toUpperCase()}`);
+    const verb = { list: 'VIEW', view: 'VIEW', create: 'ADD', edit: 'EDIT', delete: 'DELETE' }[action];
+    return this.can(`${verb}_${prefix.toUpperCase().replace(/-/g, '_')}`);
   }
 
   logout(redirect = '/login') {
@@ -49,7 +63,8 @@ export class SessionStatus {
     });
     axios.interceptors.response.use(r => r, err => {
       const status = err.response?.status;
-      if (status === 401) SessionStatus.getInstance().logout();
+      const isLogin = err.config?.url?.includes('auth/login');
+      if (status === 401 && !isLogin) SessionStatus.getInstance().logout();
       else if (status === 403) toast(err.response.data?.detail?.error ?? err.response.data?.detail ?? 'Acceso denegado', 'error');
       return Promise.reject(err);
     });
