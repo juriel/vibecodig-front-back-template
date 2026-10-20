@@ -4,27 +4,29 @@
 [Descripción breve del propósito del proyecto]
 
 ## Módulos
-- [ ] Módulo 1
+- [x] Login (usuarios, sesión en cookie, pantalla de inicio de sesión)
+- [x] Panel estilo titi: encabezado con menús desplegables + inicio con tarjetas (secciones aún "en construcción")
 
 ## Stack
-- Backend: Python + FastAPI, PostgreSQL + SQLAlchemy (`backend/`)
+- Backend: Python + FastAPI, MySQL/MariaDB + SQLAlchemy (driver PyMySQL, `mysql+pymysql://`) (`backend/`)
 - Frontend: Lit 3 (Web Components + TypeScript), @vaadin/router, Axios, Webpack 5 (`frontend/`)
 - Servidor único: `server.py` (FastAPI) → API en `/api`, frontend compilado y estáticos en `/`
-- Auth: (agregar según proyecto)
+- Auth: sesión en cookie firmada (`SessionMiddleware`, `SECRET_KEY` en `.env`; `COOKIE_SECURE=1` en producción) + contraseñas bcrypt. Proteger rutas con `dependencies=[Depends(current_user)]` al incluir el router en `backend/main.py`
 - Deploy: (Railway / Render / local)
 
 ## Cómo correr
 ```bash
 # 1. Crear DB (solo la primera vez)
-sudo -u postgres psql -c "CREATE USER <db_user> WITH PASSWORD '<db_pass>';"
-sudo -u postgres psql -c "CREATE DATABASE <db_name> OWNER <db_user>;"
+sudo mysql -e "CREATE DATABASE <db_name> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo mysql -e "CREATE USER '<db_user>'@'localhost' IDENTIFIED BY '<db_pass>'; GRANT ALL ON <db_name>.* TO '<db_user>'@'localhost';"
 
 # 2. Dependencias y configuración
-cp .env.example .env            # editar con credenciales reales
+cp .env.example .env            # editar con credenciales reales (DATABASE_URL, SECRET_KEY)
 npm run install:all             # pip install -r requirements.txt + npm install en frontend/
+python backend/create_user.py <login> "<Nombre>"   # primer usuario (pide la contraseña)
 
 # 3a. Producción / simple: compila el frontend y levanta un solo server
-npm start                       # http://localhost:8000  (API en /api, docs en /api/docs)
+npm start                       # http://localhost:8000 sitio público · /admin panel con login · /api/docs
 
 # 3b. Desarrollo: dos terminales
 npm run dev:front               # webpack --watch → frontend/web/dist/app.js
@@ -34,10 +36,11 @@ El navegador siempre habla con el mismo origen: `GlobalConfig.apiUrl = '/api/'`.
 
 ## Estructura
 ```
-server.py                  # entry point: monta backend en /api, sirve frontend/web + fallback SPA
+server.py                  # entry point: monta backend en /api, /admin → SPA (index.html), / → sitio.html público
 requirements.txt, .env.example, package.json (scripts raíz)
 backend/
-├── main.py                # define la sub-app `api` (FastAPI): routers + create_all (NO se ejecuta directo)
+├── main.py                # define la sub-app `api` (FastAPI): sesión, routers + create_all (NO se ejecuta directo)
+├── create_user.py         # crea usuarios desde la terminal
 └── app/
     ├── db.py              # conexión, Base, get_db (lee ../.env de la raíz)
     ├── mapper.py          # mapper genérico DTO → entidad
@@ -49,25 +52,34 @@ backend/
 frontend/
 ├── package.json, webpack.config.js, tsconfig.json
 ├── src/
-│   ├── index.ts, app-root.ts, global-config.ts, styles.css
+│   ├── index.ts, app-root.ts (login-page sin sesión; encabezado con desplegables y rutas /admin), global-config.ts, styles.css
+│   ├── admin-menu.ts      # APP_NAME y MENU (grupos → secciones): de aquí salen el menú y las tarjetas del inicio
+│   ├── icons.ts           # icon(nodo, tamaño): íconos de Lucide (`lucide`, versión fija) como <svg>
+│   ├── auth/              # auth-service.ts (me/login/logout + 401 → login), login-page.ts
 │   ├── crud/              # framework CRUD genérico — NO modificar
 │   └── modules/<nombre>/  # service / table / form / page por módulo
 └── web/
-    ├── index.html
+    ├── index.html         # panel (SPA) en /admin
+    ├── sitio.html         # página pública provisional en /
     └── dist/app.js        # generado por webpack (ignorado por git), servido en /dist/app.js
 ```
 
 ## Reglas de integración
 - Rutas del backend se declaran sin prefijo `/api` (lo añade el mount). Routers se incluyen en `backend/main.py` con `api.include_router(...)`.
 - Los services del frontend usan `GlobalConfig.getInstance().apiUrl + '<recurso>'` (sin `/` inicial en `<recurso>`).
-- Cualquier ruta que no sea `/api/*` ni un archivo existente devuelve `index.html` (el router de Vaadin resuelve en cliente). Por eso `index.html` referencia `/dist/app.js` con ruta absoluta.
+- El panel vive en `/admin`: cualquier ruta bajo `/admin` devuelve `index.html` (el router de Vaadin resuelve en cliente) y pide login. Las rutas del router y de `NAV_ITEMS` van con prefijo `/admin/`. `index.html` referencia `/dist/app.js` con ruta absoluta.
+- El resto es el sitio público, sin login: `/` sirve `sitio.html`, los archivos de `web/` se sirven tal cual y cualquier otra ruta da 404.
 - Tras cambiar código del frontend hay que recompilar (`npm run build` o `dev:front`); el server no compila.
 - Ejecutar siempre desde la raíz con `server:app` (no `main:app`).
 
 ## Endpoints
 | Método | Path (bajo /api) | Descripción |
 |--------|------------------|-------------|
-| | | |
+| POST | /auth/login | Inicia sesión `{login, password}` → usuario; 401 si no coincide |
+| POST | /auth/logout | Cierra sesión |
+| GET | /auth/me | Usuario de la sesión (401 sin sesión) |
+| GET, POST | /examples | Ejemplo (requiere sesión) |
+| GET, DELETE | /examples/{id} | Ejemplo (requiere sesión) |
 
 ## Convenciones backend
 
@@ -147,7 +159,7 @@ export class NombrePage extends CrudPage<NombreDTO> {
   createForm  = () => new NombreForm();
 }
 ```
-Registrar: importar en `frontend/src/index.ts` y añadir ruta en `frontend/src/app-root.ts`.
+Registrar: importar en `frontend/src/index.ts` y añadir ruta en `frontend/src/app-root.ts` (antes de las de `pending-page`). Para que aparezca en el menú y en el inicio, agregar la sección en `MENU` de `admin-menu.ts` (`/admin/<nombre>`, etiqueta e ícono de Lucide); mientras no tenga componente propio, `app-root` la muestra con `pending-page`.
 
 ### FormField
 | Propiedad | Tipo | Descripción |
@@ -166,7 +178,7 @@ Registrar: importar en `frontend/src/index.ts` y añadir ruta en `frontend/src/a
 - `/backend-new-module <nombre>` — entidad + DTO + service + router + montaje en `backend/main.py`
 - `/frontend-new-module <nombre>` — 4 archivos CRUD + registro en index y router
 - `/frontend-sync-endpoints` — lee `/api/openapi.json` y actualiza la tabla de endpoints
-- `/backend-db` — inspecciona la DB con psql
+- `/backend-db` — inspecciona la DB con el cliente mysql
 
 ## Mantenimiento
 Al cerrar un objetivo considerable: actualizar **Módulos**, **Endpoints** y **Estructura** de este archivo.

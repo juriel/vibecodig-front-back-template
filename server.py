@@ -7,7 +7,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -29,10 +29,19 @@ if (WEB / "dist").exists():
     app.mount("/dist", StaticFiles(directory=WEB / "dist"), name="dist")
 
 
+@app.get("/admin", include_in_schema=False)
+@app.get("/admin/{path:path}", include_in_schema=False)
+def admin(path: str = ""):
+    """Panel de administración (SPA con login): cualquier ruta bajo /admin devuelve index.html."""
+    return FileResponse(WEB / "index.html")
+
+
 @app.get("/{path:path}", include_in_schema=False)
-def spa(path: str):
-    """Archivos estáticos de web/ si existen; si no, index.html (fallback SPA)."""
+def site(path: str):
+    """Sitio público (sin login): archivos estáticos de web/ si existen, sitio.html en "/" y 404 en lo demás."""
     f = (WEB / path).resolve()
     if path and f.is_file() and WEB.resolve() in f.parents:
         return FileResponse(f)
-    return FileResponse(WEB / "index.html")
+    if not path:
+        return FileResponse(WEB / "sitio.html")
+    raise HTTPException(status_code=404)

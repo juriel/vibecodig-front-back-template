@@ -1,25 +1,26 @@
 # Skill: DB Inspector
 
-Cuando el usuario invoque este skill, usá psql para inspeccionar o modificar la base de datos del proyecto.
-Leer el `.env` del proyecto para obtener el valor real de `DATABASE_URL` antes de ejecutar.
+Cuando el usuario invoque este skill, usá el cliente `mysql` para inspeccionar o modificar la base de datos del proyecto.
+Leer el `.env` del proyecto para obtener el valor real de `DATABASE_URL` (`mysql+pymysql://user:pass@host/db`) antes de ejecutar.
+No pasar la contraseña por línea de comandos: usar un archivo de opciones con permisos 600 (`[client]` user/password/host) vía `--defaults-extra-file`. En los ejemplos, `$MYCNF` es ese archivo y `<db>` el nombre de la base.
 
 ## Ver tablas
 ```bash
-psql $DATABASE_URL -c "\dt"
+mysql --defaults-extra-file=$MYCNF <db> -e "SHOW TABLES;"
 ```
 
 ## Ver columnas de una tabla
 ```bash
-psql $DATABASE_URL -c "\d nombre_tabla"
+mysql --defaults-extra-file=$MYCNF <db> -e "SHOW CREATE TABLE nombre_tabla\G"
 ```
 
 ## Contar registros por tabla
 ```bash
-psql $DATABASE_URL -c "SELECT schemaname, tablename, n_live_tup FROM pg_stat_user_tables ORDER BY n_live_tup DESC;"
+mysql --defaults-extra-file=$MYCNF <db> -e "SELECT table_name, table_rows FROM information_schema.tables WHERE table_schema = DATABASE() ORDER BY table_rows DESC;"
 ```
 
 ## Consulta ad-hoc
 Ejecutá la query que el usuario pida directamente con:
 ```bash
-psql $DATABASE_URL -c "<query>"
+mysql --defaults-extra-file=$MYCNF <db> -e "<query>"
 ```
