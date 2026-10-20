@@ -1,15 +1,14 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { ExampleService, ExampleDTO } from './example-service';
+import { ui } from '../../lib/ui';
 
 @customElement('example-page')
 export class ExamplePage extends LitElement {
   @state() items: ExampleDTO[] = [];
   @state() loading = false;
 
-  static styles = css`
-    :host { display: block; padding: 1rem; }
-  `;
+  createRenderRoot() { return this; }
 
   connectedCallback() {
     super.connectedCallback();
@@ -18,17 +17,18 @@ export class ExamplePage extends LitElement {
 
   async load() {
     this.loading = true;
-    this.items = await ExampleService.findAll();
-    this.loading = false;
+    try { this.items = await ExampleService.findAll(); } finally { this.loading = false; }
   }
 
   render() {
-    if (this.loading) return html`<p>Cargando...</p>`;
     return html`
-      <h2>Example</h2>
-      <ul>
-        ${this.items.map(i => html`<li>${i.name}</li>`)}
-      </ul>
-    `;
+      <h1 class="mb-6 text-2xl font-semibold tracking-tight text-slate-900">Example</h1>
+      <div class="${ui.card} divide-y divide-slate-100">
+        ${this.loading
+          ? html`<p class="p-6 text-slate-500">Cargando…</p>`
+          : this.items.length
+            ? this.items.map(i => html`<div class="px-5 py-3 text-slate-700">${i.name}</div>`)
+            : html`<p class="p-6 text-slate-500">Sin registros.</p>`}
+      </div>`;
   }
 }

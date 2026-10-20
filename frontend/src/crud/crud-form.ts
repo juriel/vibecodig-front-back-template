@@ -3,6 +3,7 @@ import { property, state } from 'lit/decorators.js';
 import { MessageBroker } from './broker';
 import { CrudService } from './crud-service';
 import { FormField } from './types';
+import { ui, btn } from '../lib/ui';
 
 export abstract class CrudForm<T extends object> extends LitElement {
   abstract prefix: string;
@@ -84,18 +85,27 @@ export abstract class CrudForm<T extends object> extends LitElement {
 
   private _renderField(f: FormField): TemplateResult {
     const err = this.errors[f.key];
+    const dis = f.disabled || this.saving;
+    const cls = `${ui.input} ${err ? 'border-red-400 focus:border-red-500 focus:ring-red-500/15' : ''}`;
+    if (f.type === 'checkbox') {
+      return html`
+        <label class="mb-4 flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" id="${f.key}" name="${f.key}" ?disabled=${dis} class="size-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+          ${f.label}
+        </label>`;
+    }
     return html`
-      <div class="form-group">
-        <label for="${f.key}">${f.label}${f.required ? html`<span class="required">*</span>` : ''}</label>
+      <div class="mb-4">
+        <label for="${f.key}" class=${ui.label}>${f.label}${f.required ? html`<span class="ml-0.5 text-red-500">*</span>` : ''}</label>
         ${f.type === 'textarea'
-          ? html`<textarea id="${f.key}" name="${f.key}" ?disabled="${f.disabled || this.saving}"></textarea>`
+          ? html`<textarea id="${f.key}" name="${f.key}" rows="4" class=${cls} ?disabled=${dis}></textarea>`
           : f.type === 'select'
-          ? html`<select id="${f.key}" name="${f.key}" ?disabled="${f.disabled || this.saving}">
+          ? html`<select id="${f.key}" name="${f.key}" class=${cls} ?disabled=${dis}>
               <option value="">-- Seleccionar --</option>
               ${Object.entries(f.options ?? {}).map(([v, l]) => html`<option value="${v}">${l}</option>`)}
             </select>`
-          : html`<input id="${f.key}" name="${f.key}" type="${f.type ?? 'text'}" ?disabled="${f.disabled || this.saving}" />`}
-        ${err ? html`<span class="error">${err}</span>` : ''}
+          : html`<input id="${f.key}" name="${f.key}" type="${f.type ?? 'text'}" class=${cls} ?disabled=${dis} />`}
+        ${err ? html`<p class="mt-1 text-xs text-red-600">${err}</p>` : ''}
       </div>`;
   }
 
@@ -111,16 +121,21 @@ export abstract class CrudForm<T extends object> extends LitElement {
     const hasLR  = left.length > 0 || right.length > 0;
 
     return html`
-      <form @submit="${this._handleSubmit.bind(this)}">
-        ${this.errors['_global'] ? html`<p class="error-global">${this.errors['_global']}</p>` : ''}
-        <div class="form-zone-top">${top.map(f => this._renderField(f))}</div>
+      <form class="${ui.card} max-w-3xl p-6" @submit="${this._handleSubmit.bind(this)}">
+        <h3 class="mb-5 text-base font-semibold text-slate-900">${this.mode === 'add' ? 'Nuevo registro' : 'Editar registro'}</h3>
+        ${this.errors['_global'] ? html`
+          <p class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">${this.errors['_global']}</p>` : ''}
+        <div>${top.map(f => this._renderField(f))}</div>
         ${hasLR ? html`
-          <div class="form-zone-columns">
-            <div class="form-zone-left">${left.map(f => this._renderField(f))}</div>
-            <div class="form-zone-right">${right.map(f => this._renderField(f))}</div>
+          <div class="grid gap-x-5 md:grid-cols-2">
+            <div>${left.map(f => this._renderField(f))}</div>
+            <div>${right.map(f => this._renderField(f))}</div>
           </div>` : ''}
-        <div class="form-zone-bottom">${bottom.map(f => this._renderField(f))}</div>
-        <button type="submit" ?disabled="${this.saving}">${this.saving ? 'Guardando...' : 'Guardar'}</button>
+        <div>${bottom.map(f => this._renderField(f))}</div>
+        <div class="mt-2 flex justify-end gap-2 border-t border-slate-100 pt-5">
+          <button type="button" class=${btn('secondary')} @click=${() => this.dispatchEvent(new CustomEvent('form-cancel', { bubbles: true }))}>Cancelar</button>
+          <button type="submit" class=${btn('primary')} ?disabled="${this.saving}">${this.saving ? 'Guardando…' : 'Guardar'}</button>
+        </div>
       </form>`;
   }
 }

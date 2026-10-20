@@ -1,47 +1,59 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { Router } from '@vaadin/router';
+import { Router, Commands, Context } from '@vaadin/router';
+import { SessionStatus } from './lib/session';
+import { GlobalConfig } from './global-config';
+import './shell/app-sidebar';
+import './shell/app-header';
 
-const NAV_ITEMS: any[] = [
-  // { path: '/nombre', label: 'Nombre', icon: '📋' },
-];
+/** Redirige a /login si la auth está activa y no hay sesión. */
+const requireAuth = (_ctx: Context, commands: Commands) =>
+  !GlobalConfig.getInstance().authRequired || SessionStatus.getInstance().isLoggedIn
+    ? undefined
+    : commands.redirect('/login');
+
+const protect = (routes: any[]) => routes.map(r => ({ ...r, action: requireAuth }));
 
 @customElement('app-root')
 export class AppRoot extends LitElement {
-  private router!: Router;
   @state() private collapsed = false;
+  @state() private mobileOpen = false;
+  @state() private path = location.pathname;
 
   createRenderRoot() { return this; }
 
   firstUpdated() {
-    const outlet = this.querySelector('#outlet')!;
-    this.router = new Router(outlet);
-    this.router.setRoutes([
-      { path: '/', redirect: '/example' },
-      { path: '/example', component: 'example-page' },
-      // Add routes here
+    const router = new Router(this.querySelector('#outlet')!);
+    router.setRoutes([
+      { path: '/login', component: 'login-page' },
+      ...protect([
+        { path: '/', component: 'home-page' },
+        { path: '/example', component: 'example-page' },
+        // Add routes here
+      ]),
+      { path: '(.*)', redirect: '/' },
     ]);
+    window.addEventListener('vaadin-router-location-changed', () => {
+      this.path = location.pathname;
+      this.mobileOpen = false;
+    });
   }
 
   render() {
+    const shell = this.path !== '/login';
     return html`
-      <nav class="sidebar ${this.collapsed ? 'collapsed' : ''}">
-        <div class="sidebar-header">
-          <button class="sidebar-toggle" @click="${() => { this.collapsed = !this.collapsed; }}">&#9776;</button>
-          ${this.collapsed ? '' : html`<span class="sidebar-title">App</span>`}
+      <div class="flex min-h-screen">
+        ${shell ? html`
+          <app-sidebar .collapsed=${this.collapsed} .open=${this.mobileOpen} .path=${this.path}
+                       @navigate=${() => { this.mobileOpen = false; }}></app-sidebar>` : nothing}
+        <div class="flex min-w-0 flex-1 flex-col">
+          ${shell ? html`
+            <app-header @toggle-menu=${() => {
+              if (window.matchMedia('(min-width: 768px)').matches) this.collapsed = !this.collapsed;
+              else this.mobileOpen = !this.mobileOpen;
+            }}></app-header>` : nothing}
+          <main id="outlet" class=${shell ? 'flex-1 p-4 md:p-8' : 'flex-1'}></main>
         </div>
-        <ul class="sidebar-nav">
-          ${NAV_ITEMS.map((item: any) => html`
-            <li>
-              <a class="nav-item" href="${item.path}">
-                <span class="nav-icon">${item.icon}</span>
-                ${this.collapsed ? '' : html`<span class="nav-label">${item.label}</span>`}
-              </a>
-            </li>
-          `)}
-        </ul>
-      </nav>
-      <main id="outlet"></main>
-    `;
+      </div>`;
   }
 }

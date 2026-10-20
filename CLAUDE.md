@@ -8,7 +8,7 @@
 
 ## Stack
 - Backend: Python + FastAPI, PostgreSQL + SQLAlchemy (`backend/`)
-- Frontend: Lit 3 (Web Components + TypeScript), @vaadin/router, Axios, Webpack 5 (`frontend/`)
+- Frontend: Lit 3 (Web Components + TypeScript, light DOM), Tailwind CSS 4 (postcss-loader), @vaadin/router, Axios, Webpack 5 (`frontend/`)
 - Servidor único: `server.py` (FastAPI) → API en `/api`, frontend compilado y estáticos en `/`
 - Auth: (agregar según proyecto)
 - Deploy: (Railway / Render / local)
@@ -49,8 +49,10 @@ backend/
 frontend/
 ├── package.json, webpack.config.js, tsconfig.json
 ├── src/
-│   ├── index.ts, app-root.ts, global-config.ts, styles.css
-│   ├── crud/              # framework CRUD genérico — NO modificar
+│   ├── index.ts, app-root.ts (shell + rutas + guard), global-config.ts (appName, authRequired), menu.ts (menú lateral), styles.css (@theme Tailwind)
+│   ├── shell/             # app-sidebar, app-header
+│   ├── crud/              # framework CRUD genérico (tabla con búsqueda/paginación, form, page)
+│   ├── lib/               # utilidades genéricas: ui (clases Tailwind), icons, i18n, validators, date, session (auth+interceptors), toast/confirmDialog, select-from-service, finder-search
 │   └── modules/<nombre>/  # service / table / form / page por módulo
 └── web/
     ├── index.html
@@ -109,6 +111,12 @@ repo.find_all_by(eager=EAGER, campo="valor")
 ```
 
 ## Convenciones frontend
+
+### Diseño (Tailwind)
+- Todos los componentes son light DOM (`createRenderRoot() { return this; }`) para que apliquen las utilidades de Tailwind. No usar `static styles`/shadow DOM.
+- Colores y fuente se cambian en el bloque `@theme` de `styles.css` (escala `brand-*` y `sidebar*`); usar `bg-brand-600`, no colores fijos.
+- Reutilizar `ui`/`btn()` de `lib/ui.ts` e `icon()` de `lib/icons.ts` en lugar de repetir clases.
+- Menú lateral: `src/menu.ts` (con `privileges`); rutas: `app-root.ts`. Auth: poner `authRequired = true` en `global-config.ts` cuando exista `POST /api/auth/login` (devuelve `{token, user, privileges[]}`).
 
 ### Patrón CRUD — crear un módulo (`frontend/src/modules/<nombre>/`)
 ```typescript
