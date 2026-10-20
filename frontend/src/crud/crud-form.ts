@@ -41,7 +41,20 @@ export abstract class CrudForm<T extends object> extends LitElement {
     this.element = {};
     this.errors = {};
     this.mode = 'add';
-    this.updateComplete.then(() => this.querySelector('form')?.reset());
+    this.updateComplete.then(() => { this.querySelector('form')?.reset(); this._applyDefaults(); });
+  }
+
+  /** Sets the `default` value of each field (only for new records). */
+  private _applyDefaults() {
+    const form = this.querySelector('form');
+    if (!form || this.mode !== 'add') return;
+    for (const f of this.fields()) {
+      if (f.default === undefined) continue;
+      const input = form.elements.namedItem(f.key) as HTMLInputElement | null;
+      if (!input) continue;
+      if (input.type === 'checkbox') input.checked = !!f.default;
+      else input.value = String(f.default);
+    }
   }
 
   /** Writes `element` into the inputs. Call again if a select/checkboxes' options arrive late. */

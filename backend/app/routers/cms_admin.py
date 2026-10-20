@@ -3,12 +3,14 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.dtos.cms_asset_dto import CmsCssCreateDTO, CmsCssUpdateDTO, CmsJsCreateDTO, CmsJsUpdateDTO
 from app.dtos.cms_layout_dto import CmsLayoutCreateDTO, CmsLayoutUpdateDTO
 from app.dtos.cms_page_dto import CmsPageCreateDTO, CmsPageUpdateDTO
 from app.dtos.cms_widget_dto import CmsWidgetCreateDTO, CmsWidgetUpdateDTO
 from app.entities.user import User
 from app.security import require_privilege
-from app.services import cms_layout_service, cms_page_service, cms_widget_service
+from app.services import cms_asset_service, cms_layout_service, cms_page_service, cms_widget_service
+from app.services.cms_asset_service import CSS, JS
 
 router = APIRouter(prefix="/cms", tags=["cms"])
 
@@ -103,3 +105,55 @@ def update_widget(widget_id: int, body: CmsWidgetUpdateDTO, db: Session = Depend
 @router.delete("/widgets/{widget_id}", status_code=204, dependencies=[Depends(require_privilege("DELETE_CMS_PAGE"))])
 def delete_widget(widget_id: int, db: Session = Depends(get_db)):
     cms_widget_service.delete_widget(db, widget_id)
+
+
+# ---------------- Global CSS and JS (no privileges of their own: they use the layout ones, *_CMS_LAYOUT) ----------------
+
+@router.get("/css", dependencies=[Depends(require_privilege("VIEW_CMS_LAYOUT"))])
+def list_css(db: Session = Depends(get_db)):
+    return cms_asset_service.list_assets(db, CSS)
+
+
+@router.post("/css", status_code=201, dependencies=[Depends(require_privilege("ADD_CMS_LAYOUT"))])
+def create_css(body: CmsCssCreateDTO, db: Session = Depends(get_db)):
+    return cms_asset_service.create_asset(db, CSS, body)
+
+
+@router.get("/css/{code}", dependencies=[Depends(require_privilege("VIEW_CMS_LAYOUT"))])
+def get_css(code: str, db: Session = Depends(get_db)):
+    return cms_asset_service.get_asset(db, CSS, code)
+
+
+@router.put("/css/{code}", dependencies=[Depends(require_privilege("EDIT_CMS_LAYOUT"))])
+def update_css(code: str, body: CmsCssUpdateDTO, db: Session = Depends(get_db)):
+    return cms_asset_service.update_asset(db, CSS, code, body)
+
+
+@router.delete("/css/{code}", status_code=204, dependencies=[Depends(require_privilege("DELETE_CMS_LAYOUT"))])
+def delete_css(code: str, db: Session = Depends(get_db)):
+    cms_asset_service.delete_asset(db, CSS, code)
+
+
+@router.get("/js", dependencies=[Depends(require_privilege("VIEW_CMS_LAYOUT"))])
+def list_js(db: Session = Depends(get_db)):
+    return cms_asset_service.list_assets(db, JS)
+
+
+@router.post("/js", status_code=201, dependencies=[Depends(require_privilege("ADD_CMS_LAYOUT"))])
+def create_js(body: CmsJsCreateDTO, db: Session = Depends(get_db)):
+    return cms_asset_service.create_asset(db, JS, body)
+
+
+@router.get("/js/{code}", dependencies=[Depends(require_privilege("VIEW_CMS_LAYOUT"))])
+def get_js(code: str, db: Session = Depends(get_db)):
+    return cms_asset_service.get_asset(db, JS, code)
+
+
+@router.put("/js/{code}", dependencies=[Depends(require_privilege("EDIT_CMS_LAYOUT"))])
+def update_js(code: str, body: CmsJsUpdateDTO, db: Session = Depends(get_db)):
+    return cms_asset_service.update_asset(db, JS, code, body)
+
+
+@router.delete("/js/{code}", status_code=204, dependencies=[Depends(require_privilege("DELETE_CMS_LAYOUT"))])
+def delete_js(code: str, db: Session = Depends(get_db)):
+    cms_asset_service.delete_asset(db, JS, code)

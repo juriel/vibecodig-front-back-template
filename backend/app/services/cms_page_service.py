@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.dtos.cms_page_dto import CmsPageCreateDTO, CmsPageUpdateDTO
+from app.entities.cms_asset import CmsCss, CmsJs
 from app.entities.cms_layout import CmsLayout
 from app.entities.cms_page import CmsPage, PageXRegisteredUserGroup
 from app.entities.user import User
@@ -42,6 +43,11 @@ def _check(db: Session, dto: CmsPageCreateDTO, page_id: int | None = None):
         taken = taken.filter(CmsPage.id != page_id)
     if taken.first():
         raise ApiError(409, "error.page.url_exists")
+    # A global asset served at the same path (/css/<url>.css, /js/<url>.js) would shadow this page's own CSS/JS.
+    names = {dto.url} | ({"index"} if dto.is_index else set())
+    for content, entity, ext in ((dto.css, CmsCss, ".css"), (dto.javascript, CmsJs, ".js")):
+        if content and db.query(entity).filter(entity.path.in_([n + ext for n in names])).first():
+            raise ApiError(409, "error.page.url_asset_conflict")
 
 
 def _single_index(db: Session, page: CmsPage):

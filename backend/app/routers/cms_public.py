@@ -1,4 +1,5 @@
 """Public CMS site (outside /api): /<url>.page, /css/*, /js/*, /media/<folder>/<file>."""
+import hashlib
 import html
 from pathlib import Path
 from urllib.parse import quote
@@ -53,12 +54,22 @@ def page(url: str, request: Request, db: Session = Depends(get_db)):
     return _render(request, db, url)
 
 
+def _text_asset(request: Request, content: str, media_type: str) -> Response:
+    """Serves CSS/JS with an ETag and `no-cache`: browsers revalidate on every request (cheap 304s), so an edit
+    made in the admin panel shows up immediately instead of after a max-age window."""
+    etag = '"' + hashlib.sha1(content.encode()).hexdigest() + '"'
+    headers = {"ETag": etag, "Cache-Control": "public, no-cache"}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    return Response(content, media_type=media_type, headers=headers)
+
+
 @router.get("/css/{path:path}")
 def css(path: str, request: Request, db: Session = Depends(get_db)):
     content = cms_public_service.css_content(db, path)
     if content is None:
         return _error(request, 404, "site.error.not_found")
-    return Response(content, media_type="text/css; charset=utf-8", headers={"Cache-Control": "public, max-age=60"})
+    return _text_asset(request, content, "text/css; charset=utf-8")
 
 
 @router.get("/js/{path:path}")
@@ -66,7 +77,7 @@ def js(path: str, request: Request, db: Session = Depends(get_db)):
     content = cms_public_service.js_content(db, path)
     if content is None:
         return _error(request, 404, "site.error.not_found")
-    return Response(content, media_type="application/javascript; charset=utf-8", headers={"Cache-Control": "public, max-age=60"})
+    return _text_asset(request, content, "application/javascript; charset=utf-8")
 
 
 @router.get("/media/{folder}/{filename:path}")

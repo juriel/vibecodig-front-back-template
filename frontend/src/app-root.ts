@@ -45,6 +45,8 @@ export class AppRoot extends LitElement {
         { path: `${ADMIN}/pages`, component: 'cms-page-page' },
         { path: `${ADMIN}/layouts`, component: 'cms-layout-page' },
         { path: `${ADMIN}/widgets`, component: 'cms-widget-page' },
+        { path: `${ADMIN}/css`, component: 'cms-css-page' },
+        { path: `${ADMIN}/javascripts`, component: 'cms-js-page' },
         // Add routes here (before the pending sections)
         ...leaves(MENU).filter(i => i.pending).map(i => ({ path: i.path!, component: 'pending-page' })),
       ]),

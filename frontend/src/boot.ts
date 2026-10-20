@@ -21,6 +21,12 @@ import './modules/cms-layout/cms-layout.form';
 import './modules/cms-widget/cms-widget.page';
 import './modules/cms-widget/cms-widget.table';
 import './modules/cms-widget/cms-widget.form';
+import './modules/cms-css/cms-css.page';
+import './modules/cms-css/cms-css.table';
+import './modules/cms-css/cms-css.form';
+import './modules/cms-js/cms-js.page';
+import './modules/cms-js/cms-js.table';
+import './modules/cms-js/cms-js.form';
 // Import modules here
 
 SessionStatus.installInterceptors();

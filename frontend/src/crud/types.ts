@@ -8,6 +8,7 @@ export interface FormField {
   mono?: boolean;           // textarea: monospaced font, no spellcheck (for HTML/CSS/JS)
   placeholder?: string;
   help?: string;            // help text below the field
+  default?: string | number | boolean;   // initial value on new records (checkbox: checked)
   required?: boolean;
   disabled?: boolean;
   zone?: 'top' | 'left' | 'right' | 'bottom'; // layout TLRB, default: top

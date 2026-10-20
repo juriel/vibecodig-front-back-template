@@ -6,7 +6,7 @@
 ## Módulos
 - [x] Auth (login JWT + privilegios)
 - [x] Panel `/admin`: menú lateral + inicio con tarjetas; secciones CMS aún "en construcción" (`pending-page`)
-- [x] CMS público + administración de Pages (`/admin/pages`), Layouts (`/admin/layouts`) y Widgets (`/admin/widgets`); pendientes: CSS, Javascripts, Configuraciones globales, Carpetas y Archivos (media manager)
+- [x] CMS público + administración de Pages (`/admin/pages`), Layouts (`/admin/layouts`), Widgets (`/admin/widgets`), CSS globales (`/admin/css`) y JS globales (`/admin/javascripts`); pendientes: Configuraciones globales, Carpetas y Archivos (media manager)
 - [x] Perfiles (`/admin/profile`): CRUD de `profile` + asignación de privilegios agrupados por categoría; Privilegios (`/admin/privilege`): catálogo de solo lectura
 - [x] Usuarios (`/admin/user`): CRUD sobre `users` con asignación de perfiles; borrado lógico (`deleted=1`)
 
@@ -94,6 +94,8 @@ frontend/
 | GET, PUT, DELETE | /cms/layouts/{id} | detalle / edita / elimina; 409 si la usa alguna página (`VIEW_`/`EDIT_`/`DELETE_CMS_LAYOUT`) |
 | GET, POST | /cms/widgets | widgets con conteo de usos (privilegios de páginas: `VIEW_`/`ADD_CMS_PAGE`) |
 | GET, PUT, DELETE | /cms/widgets/{id} | detalle / edita / elimina; 409 al renombrar o borrar si está en uso (`VIEW_`/`EDIT_`/`DELETE_CMS_PAGE`) |
+| GET, POST | /cms/css, /cms/js | recursos globales (sin contenido pesado, con `content_length` y `source`: `external`/`own`) / crea (`VIEW_`/`ADD_CMS_LAYOUT`) |
+| GET, PUT, DELETE | /cms/css/{code}, /cms/js/{code} | detalle con `content` / edita (el `code` es inmutable) / elimina (`VIEW_`/`EDIT_`/`DELETE_CMS_LAYOUT`) |
 | GET | /privileges | catálogo completo de privilegios, solo lectura (`VIEW_PROFILE`) |
 | GET | /profiles/privileges | privilegios que el usuario actual puede conceder (`ADD_PROFILE`/`EDIT_PROFILE`) |
 | GET | /profiles | lista perfiles con `privilege_codes[]` (`VIEW_PROFILE`) |
@@ -123,6 +125,7 @@ frontend/
   Las páginas privadas (con filas en `page_x_registered_user_group`) responden 403 y no exponen su CSS/JS: el login de usuarios registrados no está portado.
   El media manager lee `vfs.path` relativo a `VFS_PATH` (`.env`, default `/opt/vfs`) y nunca sale de esa raíz; los SVG/HTML servidos llevan `Content-Security-Policy: sandbox`.
 - Reglas de CMS (admin): URL de página única y con patrón `[A-Za-z0-9][A-Za-z0-9_-/]*`; solo una página índice; el dueño y la fecha de creación no cambian al editar. Una sola plantilla predeterminada por tipo (la primera de un tipo lo es siempre; al borrar la predeterminada se promueve otra). No se borra una plantilla en uso. Los widgets se nombran con `[A-Za-z0-9_-]`, y no se renombran ni borran si alguna plantilla o página los referencia. Los widgets no tienen privilegios propios: usan los de páginas.
+- Reglas de CSS/JS globales (`cms_css`, `cms_js`; sin privilegios propios: usan los de plantillas, `*_CMS_LAYOUT`): un recurso es EXTERNO (`url` http/https, sin path ni contenido; se guardan vacíos) o PROPIO (`path` relativo terminado en `.css`/`.js` + `content`, servido en `/css/<path>` o `/js/<path>`), nunca ambos. El `path` es único y no puede tapar el CSS/JS propio de una página (`/css/<url>.css`); a la inversa, una página con CSS/JS propio no puede usar una URL cuyo path ya sirve un global. `code` (PK, `[A-Za-z0-9_-]`, máx. 32) no cambia tras crear. Solo los `active` se incluyen en el sitio, por `order_show`; los JS llevan `type` `header` (en el `<head>`) o `footer`. `/css/*` y `/js/*` se sirven con `ETag` y `Cache-Control: public, no-cache` (revalidan siempre: una edición se ve al instante; `If-None-Match` → 304).
 - Reglas de perfiles: los perfiles con `editable=0` (sistema, p. ej. Administrator) no se modifican ni borran. Solo se pueden CONCEDER privilegios que el actor posee (`ALL` puede todo). Un perfil con `ALL` solo lo administra un super usuario. No se borra un perfil en uso; la tabla no tiene claves foráneas, así que la integridad la garantiza la app. El catálogo de privilegios es de solo lectura (los códigos los define el código de la plataforma).
 - Reglas de usuarios: solo un super usuario (`ALL`) puede asignar perfiles con `ALL` o modificar/borrar a otro super usuario. Usuarios borrados (`deleted=1`) no pueden iniciar sesión ni reutilizar su login. El login responde el mismo 401 para usuario inexistente o clave errónea.
 
@@ -226,6 +229,7 @@ Registrar: importar en `frontend/src/boot.ts` y añadir ruta `/admin/<nombre>` e
 | required | boolean | valida en submit |
 | disabled | boolean | no editable |
 | zone | top\|left\|right\|bottom | posición en el layout, default: top |
+| default | string / number / boolean | valor inicial al crear (checkbox: marcado) |
 | rows / mono / placeholder / help | number / boolean / string / string | `textarea`: filas y fuente monoespaciada (HTML/CSS/JS); `placeholder` y texto de `help` bajo el campo (cualquier tipo) |
 | groups | Record<string,Record<string,string>> | solo `checkboxes`: opciones agrupadas por categoría `{ grupo: { value: label } }` (con botón "Todos / ninguno") |
 | validator | (v) => boolean | validación custom |

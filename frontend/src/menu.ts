@@ -24,8 +24,8 @@ export const MENU: MenuItem[] = [
   {
     label: 'menu.settings', icon: 'cog', children: [
       { label: 'menu.global_settings', icon: 'cog', path: `${A}/global-settings`, privileges: ['VIEW_GLOBAL_CONFIGURATION'], pending: true },
-      { label: 'menu.css', icon: 'palette', path: `${A}/css`, privileges: ['VIEW_CMS_LAYOUT'], pending: true },
-      { label: 'menu.javascripts', icon: 'code', path: `${A}/javascripts`, privileges: ['VIEW_CMS_LAYOUT'], pending: true },
+      { label: 'menu.css', icon: 'palette', path: `${A}/css`, privileges: ['VIEW_CMS_LAYOUT'] },
+      { label: 'menu.javascripts', icon: 'code', path: `${A}/javascripts`, privileges: ['VIEW_CMS_LAYOUT'] },
       { label: 'menu.layouts', icon: 'layers', path: `${A}/layouts`, privileges: ['VIEW_CMS_LAYOUT'] },
     ],
   },

@@ -20,8 +20,8 @@ PY_KEYS = re.compile(r"""['"]((?:error|site|cli)\.[a-z0-9_.]+)['"]""")
 # I18n.t(cond ? 'a.b' : 'c.d'): both branches are keys.
 TS_TERNARY = re.compile(r"""I18n\.tn?\([^)]*?\?\s*['"]([a-z0-9_.]+)['"]\s*:\s*['"]([a-z0-9_.]+)['"]""")
 PLURAL = re.compile(r"""\.tn\(\s*['"]([a-z0-9_.]+)['"]""")
-# Keys built at runtime ('validation.' + error.type, 'crud.subtitle.' + view): not found as literals.
-DYNAMIC_PREFIXES = ("validation.", "crud.subtitle.")
+# Keys built at runtime ('validation.' + error.type, 'crud.subtitle.' + view, 'cms.js.type.' + type).
+DYNAMIC_PREFIXES = ("validation.", "crud.subtitle.", "cms.js.type.")
 
 
 def load(path: Path) -> dict[str, str]:
