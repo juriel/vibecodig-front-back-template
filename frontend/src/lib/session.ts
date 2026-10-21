@@ -25,6 +25,14 @@ export class SessionStatus {
     localStorage.setItem(SessionStatus.KEY, JSON.stringify(session));
   }
 
+  /** Updates the stored user (after editing the own account) and tells the shell to re-render. */
+  updateUser(user: any) {
+    const s = this.read();
+    if (!s) return;
+    this.save({ ...s, user });
+    window.dispatchEvent(new CustomEvent('session-change'));
+  }
+
   hasPrivilege(code: string) { return this.privileges.includes(code); }
   /** true if the user has the privilege or the "ALL" wildcard. */
   can(code: string) { return this.hasPrivilege(code) || this.hasPrivilege('ALL'); }

@@ -5,6 +5,7 @@ import { CrudService } from './crud-service';
 import { FormField } from './types';
 import { ui, btn } from '../lib/ui';
 import { I18n } from '../lib/i18n';
+import '../lib/code-editor';
 
 export abstract class CrudForm<T extends object> extends LitElement {
   abstract prefix: string;
@@ -41,7 +42,7 @@ export abstract class CrudForm<T extends object> extends LitElement {
     this.element = {};
     this.errors = {};
     this.mode = 'add';
-    this.updateComplete.then(() => { this.querySelector('form')?.reset(); this._applyDefaults(); });
+    this.updateComplete.then(() => { this.querySelector('form')?.reset(); this._applyDefaults(); this._announceTextareas(); });
   }
 
   /** Sets the `default` value of each field (only for new records). */
@@ -58,7 +59,12 @@ export abstract class CrudForm<T extends object> extends LitElement {
   }
 
   /** Writes `element` into the inputs. Call again if a select/checkboxes' options arrive late. */
-  protected repopulate() { this._populateInputs(); }
+  protected repopulate() { this._populateInputs(); this._announceTextareas(); }
+
+  /** Values set from code fire no event; code editors over a textarea listen to 'input' to stay in sync. */
+  private _announceTextareas() {
+    this.querySelectorAll('textarea').forEach(t => t.dispatchEvent(new Event('input', { bubbles: true })));
+  }
 
   private _populateInputs() {
     const inputs = this.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input,select,textarea');
@@ -156,7 +162,7 @@ export abstract class CrudForm<T extends object> extends LitElement {
             ${Object.entries(f.groups).map(([group, opts]) => html`
               <div data-group class="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
                 <div class="mb-2 flex items-center justify-between">
-                  <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">${group}</span>
+                  <span class="text-sm font-semibold text-slate-700">${group}</span>
                   <button type="button" class="text-xs font-medium text-brand-600 hover:text-brand-700" ?disabled=${dis} @click=${toggleGroup}>${I18n.t('common.all_none')}</button>
                 </div>
                 <div class="grid gap-x-5 gap-y-2 sm:grid-cols-2">
@@ -197,7 +203,8 @@ export abstract class CrudForm<T extends object> extends LitElement {
         <label for="${f.key}" class=${ui.label}>${f.label}${f.required ? html`<span class="ml-0.5 text-red-500">*</span>` : ''}</label>
         ${f.type === 'textarea'
           ? html`<textarea id="${f.key}" name="${f.key}" rows="${f.rows ?? 4}" placeholder=${f.placeholder ?? ''} spellcheck=${f.mono ? 'false' : 'true'} wrap=${f.mono ? 'off' : 'soft'}
-                           class="${cls} ${f.mono ? 'font-mono text-[13px] leading-5 whitespace-pre overflow-x-auto' : ''}" ?disabled=${dis}></textarea>`
+                           class="${cls} ${f.mono ? 'font-mono text-[13px] leading-5 whitespace-pre overflow-x-auto' : ''}" ?disabled=${dis}></textarea>
+                 ${f.mono ? html`<code-editor for=${f.key} language=${f.language ?? 'html'} rows=${f.rows ?? 12}></code-editor>` : ''}`
           : f.type === 'select'
           ? html`<select id="${f.key}" name="${f.key}" class=${cls} ?disabled=${dis}>
               <option value="">${I18n.t('common.select')}</option>
@@ -221,7 +228,7 @@ export abstract class CrudForm<T extends object> extends LitElement {
     const hasLR  = left.length > 0 || right.length > 0;
 
     return html`
-      <form class="${ui.card} max-w-3xl p-6" @submit="${this._handleSubmit.bind(this)}">
+      <form class="${ui.card} p-6 md:p-8" @submit="${this._handleSubmit.bind(this)}">
         <h3 class="mb-5 text-base font-semibold text-slate-900">${I18n.t(this.mode === 'add' ? 'crud.new_record' : 'crud.edit_record')}</h3>
         ${this.errors['_global'] ? html`
           <p class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">${this.errors['_global']}</p>` : ''}

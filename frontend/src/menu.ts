@@ -33,6 +33,7 @@ export const MENU: MenuItem[] = [
     label: 'menu.content', icon: 'dashboard', children: [
       { label: 'menu.pages', icon: 'globe', path: `${A}/pages`, privileges: ['VIEW_CMS_PAGE'] },
       { label: 'menu.widgets', icon: 'dashboard', path: `${A}/widgets`, privileges: ['VIEW_CMS_PAGE'] },
+      { label: 'menu.redirects', icon: 'arrows', path: `${A}/redirects`, privileges: ['VIEW_CMS_PAGE'] },
       { label: 'menu.folders', icon: 'folder', path: `${A}/folders`, privileges: ['VIEW_FOLDER'], pending: true },
       { label: 'menu.files', icon: 'document', path: `${A}/files`, privileges: ['VIEW_FOLDER'], pending: true },
     ],

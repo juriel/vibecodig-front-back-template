@@ -39,12 +39,14 @@ export class AppRoot extends LitElement {
       { path: LOGIN, component: 'login-page' },
       ...protect([
         { path: ADMIN, component: 'home-page' },
+        { path: `${ADMIN}/account`, component: 'account-page' },
         { path: `${ADMIN}/user`, component: 'user-page' },
         { path: `${ADMIN}/profile`, component: 'profile-page' },
         { path: `${ADMIN}/privilege`, component: 'privilege-page' },
         { path: `${ADMIN}/pages`, component: 'cms-page-page' },
         { path: `${ADMIN}/layouts`, component: 'cms-layout-page' },
         { path: `${ADMIN}/widgets`, component: 'cms-widget-page' },
+        { path: `${ADMIN}/redirects`, component: 'cms-redirect-page' },
         { path: `${ADMIN}/css`, component: 'cms-css-page' },
         { path: `${ADMIN}/javascripts`, component: 'cms-js-page' },
         // Add routes here (before the pending sections)

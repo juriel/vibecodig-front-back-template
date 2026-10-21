@@ -26,7 +26,8 @@ def _serialize(user: User) -> dict:
         "name": user.name,
         "email": user.email,
         "profile_ids": [p.id for p in user.profiles],
-        "profiles": [{"id": p.id, "name": p.name} for p in user.profiles],
+        # super = the profile includes ALL (full access); shown in the list so it is clear who can do everything
+        "profiles": [{"id": p.id, "name": p.name, "super": any(pr.code == "ALL" for pr in p.privileges)} for p in user.profiles],
     }
 
 

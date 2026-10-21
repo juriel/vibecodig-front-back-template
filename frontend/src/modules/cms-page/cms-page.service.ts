@@ -13,6 +13,13 @@ export interface CmsPageDTO {
   css?: string;
   javascript?: string;
   is_index?: boolean;
+  // SEO
+  description?: string | null;
+  og_title?: string | null;
+  og_description?: string | null;
+  og_image?: string | null;
+  canonical?: string | null;
+  noindex?: boolean;
   // read-only (list)
   layout_name?: string;
   owner?: string;

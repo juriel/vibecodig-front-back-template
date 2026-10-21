@@ -4,3 +4,4 @@ __pycache__/
 node_modules/
 frontend/web/dist/
 .venv/
+scripts/e2e/out/

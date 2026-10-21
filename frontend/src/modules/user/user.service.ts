@@ -8,7 +8,7 @@ export interface UserDTO {
   email?: string | null;
   password?: string;
   profile_ids?: number[];
-  profiles?: { id: number; name: string }[];
+  profiles?: { id: number; name: string; super?: boolean }[];
 }
 
 export class UserService extends CrudService<UserDTO> {

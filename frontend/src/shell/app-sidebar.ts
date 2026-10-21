@@ -41,11 +41,12 @@ export class AppSidebar extends LitElement {
     const active = this.isActive(item);
     return html`
       <a href=${item.path!} title=${I18n.t(item.label)} @click=${() => this.dispatchEvent(new CustomEvent('navigate'))}
-         class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition
-                ${active ? 'bg-brand-500/25 text-white' : 'text-sidebar-text hover:bg-sidebar-hover hover:text-white'}
+         class="group flex items-center gap-3 rounded-full px-3 py-2 text-sm font-medium transition
+                ${active ? 'bg-accent-50 text-accent-700' : 'text-sidebar-text hover:bg-sidebar-hover hover:text-slate-900'}
                 ${nested ? 'pl-4' : ''}">
         ${icon(item.icon ?? 'dashboard', nested ? 'size-4' : 'size-5')}
-        ${this.collapsed && !this.open ? '' : html`<span class="truncate">${I18n.t(item.label)}</span>`}
+        ${this.collapsed && !this.open ? '' : html`<span class="flex-1 leading-tight">${I18n.t(item.label)}</span>
+          ${active ? html`<span class="h-4 w-1 rounded-full bg-accent-500" aria-hidden="true"></span>` : ''}`}
       </a>`;
   }
 
@@ -54,8 +55,8 @@ export class AppSidebar extends LitElement {
     const isOpen = this.expanded.has(item.label) || (this.isActive(item) && !this.expanded.has('!' + item.label));
     return html`
       <div>
-        <button class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition
-                       ${this.isActive(item) ? 'text-white' : 'text-sidebar-text hover:bg-sidebar-hover hover:text-white'}"
+        <button class="flex w-full items-center gap-3 rounded-full px-3 py-2 text-sm font-medium transition
+                       ${this.isActive(item) ? 'text-slate-900' : 'text-sidebar-text hover:bg-sidebar-hover hover:text-slate-900'}"
                 title=${I18n.t(item.label)} @click=${() => this.toggle(item.label)}>
           ${icon(item.icon ?? 'dashboard')}
           ${compact ? '' : html`
@@ -63,7 +64,7 @@ export class AppSidebar extends LitElement {
             ${icon('chevron-down', `size-4 transition-transform ${isOpen ? 'rotate-180' : ''}`)}`}
         </button>
         ${isOpen && !compact ? html`
-          <div class="ml-4 mt-1 space-y-1 border-l border-white/10 pl-2">
+          <div class="ml-5 mt-1 space-y-0.5 border-l border-slate-200 pl-2">
             ${item.children!.filter(c => this.visible(c)).map(c => this.link(c, true))}
           </div>` : ''}
       </div>`;
@@ -73,13 +74,13 @@ export class AppSidebar extends LitElement {
     const name = GlobalConfig.getInstance().appName;
     const compact = this.collapsed && !this.open;
     return html`
-      ${this.open ? html`<div class="fixed inset-0 z-30 bg-slate-900/50 md:hidden" @click=${() => this.dispatchEvent(new CustomEvent('navigate'))}></div>` : ''}
-      <aside class="fixed inset-y-0 left-0 z-40 flex flex-col bg-sidebar transition-all duration-200
+      ${this.open ? html`<div class="fixed inset-0 z-30 bg-black/60 md:hidden" @click=${() => this.dispatchEvent(new CustomEvent('navigate'))}></div>` : ''}
+      <aside class="fixed inset-y-0 left-0 z-40 flex flex-col border-r border-slate-200 bg-sidebar transition-all duration-200
                     ${this.open ? 'translate-x-0 w-64' : '-translate-x-full'} md:sticky md:top-0 md:h-screen md:translate-x-0
                     ${compact ? 'md:w-[4.5rem]' : 'md:w-64'}">
-        <div class="flex h-16 items-center gap-3 border-b border-white/10 px-4">
-          <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-500 text-sm font-bold text-white">${name.charAt(0)}</span>
-          ${compact ? '' : html`<span class="truncate text-base font-semibold text-white">${name}</span>`}
+        <div class="flex h-16 items-center gap-3 px-4">
+          <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-500 font-display text-lg font-bold text-on-accent">${name.charAt(0)}</span>
+          ${compact ? '' : html`<span class="truncate font-display text-xl font-semibold tracking-wide text-slate-900">${name}</span>`}
         </div>
         <nav class="flex-1 space-y-1 overflow-y-auto p-3">
           ${MENU.filter(i => this.visible(i)).map(i => i.children ? this.group(i) : this.link(i))}

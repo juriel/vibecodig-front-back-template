@@ -8,7 +8,10 @@
   "dependencies": {
     "@vaadin/router": "^2.0.0",
     "axios": "^1.7.7",
-    "lit": "^3.2.1"
+    "grapesjs": "0.23.6",
+    "js-beautify": "1.15.4",
+    "lit": "^3.2.1",
+    "monaco-editor": "0.56.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

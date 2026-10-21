@@ -88,7 +88,7 @@ export abstract class CmsAssetForm extends CrudForm<CmsAssetDTO> {
         validator: v => !v || /^https?:\/\/\S+$/.test(String(v)) },
       { key: 'path', label: I18n.t('cms.asset.field.path'), placeholder: 'site' + ext, zone: 'bottom', help: I18n.t('cms.asset.field.path_help', `/${this.kind}/<path>`, ext),
         validator: v => !v || /^[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*$/.test(String(v)) },
-      { key: 'content', label: I18n.t('cms.asset.field.content'), type: 'textarea', mono: true, rows: 20, zone: 'bottom' },
+      { key: 'content', label: I18n.t('cms.asset.field.content'), type: 'textarea', mono: true, language: this.kind === 'css' ? 'css' : 'javascript', rows: 20, zone: 'bottom' },
     ];
   };
 }

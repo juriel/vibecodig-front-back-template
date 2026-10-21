@@ -1,15 +1,16 @@
-"""CMS administration API: pages, layouts and widgets (under /api/cms)."""
-from fastapi import APIRouter, Depends
+"""CMS administration API: pages, layouts, widgets, global CSS/JS and redirects (under /api/cms)."""
+from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.dtos.cms_asset_dto import CmsCssCreateDTO, CmsCssUpdateDTO, CmsJsCreateDTO, CmsJsUpdateDTO
 from app.dtos.cms_layout_dto import CmsLayoutCreateDTO, CmsLayoutUpdateDTO
 from app.dtos.cms_page_dto import CmsPageCreateDTO, CmsPageUpdateDTO
+from app.dtos.cms_redirect_dto import CmsRedirectCreateDTO, CmsRedirectUpdateDTO
 from app.dtos.cms_widget_dto import CmsWidgetCreateDTO, CmsWidgetUpdateDTO
 from app.entities.user import User
 from app.security import require_privilege
-from app.services import cms_asset_service, cms_layout_service, cms_page_service, cms_widget_service
+from app.services import cms_asset_service, cms_layout_service, cms_media_service, cms_page_service, cms_redirect_service, cms_widget_service
 from app.services.cms_asset_service import CSS, JS
 
 router = APIRouter(prefix="/cms", tags=["cms"])
@@ -21,6 +22,11 @@ router = APIRouter(prefix="/cms", tags=["cms"])
 @router.get("/pages/layouts")
 def page_layouts(db: Session = Depends(get_db), _: User = Depends(require_privilege("ADD_CMS_PAGE", "EDIT_CMS_PAGE"))):
     return cms_page_service.list_layouts(db)
+
+
+@router.get("/pages/editor-assets")
+def page_editor_assets(db: Session = Depends(get_db), _: User = Depends(require_privilege("ADD_CMS_PAGE", "EDIT_CMS_PAGE"))):
+    return cms_page_service.editor_assets(db)
 
 
 @router.get("/pages", dependencies=[Depends(require_privilege("VIEW_CMS_PAGE"))])
@@ -157,3 +163,42 @@ def update_js(code: str, body: CmsJsUpdateDTO, db: Session = Depends(get_db)):
 @router.delete("/js/{code}", status_code=204, dependencies=[Depends(require_privilege("DELETE_CMS_LAYOUT"))])
 def delete_js(code: str, db: Session = Depends(get_db)):
     cms_asset_service.delete_asset(db, JS, code)
+
+
+# ---------------- Redirects (no privileges of their own: they use the page ones, *_CMS_PAGE) ----------------
+
+@router.get("/redirects", dependencies=[Depends(require_privilege("VIEW_CMS_PAGE"))])
+def list_redirects(db: Session = Depends(get_db)):
+    return cms_redirect_service.list_redirects(db)
+
+
+@router.post("/redirects", status_code=201, dependencies=[Depends(require_privilege("ADD_CMS_PAGE"))])
+def create_redirect(body: CmsRedirectCreateDTO, db: Session = Depends(get_db)):
+    return cms_redirect_service.create_redirect(db, body)
+
+
+@router.get("/redirects/{redirect_id}", dependencies=[Depends(require_privilege("VIEW_CMS_PAGE"))])
+def get_redirect(redirect_id: int, db: Session = Depends(get_db)):
+    return cms_redirect_service.get_redirect(db, redirect_id)
+
+
+@router.put("/redirects/{redirect_id}", dependencies=[Depends(require_privilege("EDIT_CMS_PAGE"))])
+def update_redirect(redirect_id: int, body: CmsRedirectUpdateDTO, db: Session = Depends(get_db)):
+    return cms_redirect_service.update_redirect(db, redirect_id, body)
+
+
+@router.delete("/redirects/{redirect_id}", status_code=204, dependencies=[Depends(require_privilege("DELETE_CMS_PAGE"))])
+def delete_redirect(redirect_id: int, db: Session = Depends(get_db)):
+    cms_redirect_service.delete_redirect(db, redirect_id)
+
+
+# ---------------- Media (uploads from the page editor; privileges *_FOLDER of the media manager) ----------------
+
+@router.get("/media", dependencies=[Depends(require_privilege("VIEW_FOLDER", "ADD_FOLDER"))])
+def list_media(db: Session = Depends(get_db)):
+    return cms_media_service.list_files(db)
+
+
+@router.post("/media", status_code=201, dependencies=[Depends(require_privilege("ADD_FOLDER"))])
+def upload_media(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    return cms_media_service.upload(db, file)

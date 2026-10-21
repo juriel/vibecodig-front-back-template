@@ -6,7 +6,8 @@ import { CrudForm } from './crud-form';
 import { SessionStatus } from '../lib/session';
 import { confirmDialog, toast } from '../lib/toast';
 import { icon } from '../lib/icons';
-import { btn } from '../lib/ui';
+import { titleBand, bandBtn } from '../lib/title-band';
+import { MENU, leaves } from '../menu';
 import { I18n } from '../lib/i18n';
 
 type CrudView = 'list' | 'create' | 'edit' | 'detail';
@@ -75,18 +76,23 @@ export abstract class CrudPage<T extends object> extends LitElement {
     }
   }
 
+  /** Extra buttons for the title band in the list view (before "New"); a module overrides it to add its own. */
+  protected bandActions(): unknown { return ''; }
+
+  /** Opens a record in the edit form (e.g. one just created somewhere else). */
+  protected openEdit(element: T) { this._showEdit(element); }
+
+  /** Icon of this screen, taken from its menu entry. */
+  private get _icon(): string | undefined {
+    return leaves(MENU).find(i => i.path === location.pathname)?.icon;
+  }
+
   private _renderToolbar(): TemplateResult {
     const canCreate = this.canCreate && SessionStatus.getInstance().allowed(this.permission, 'create');
-    return html`
-      <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 class="text-2xl font-semibold tracking-tight text-slate-900">${this.label}</h1>
-          <p class="mt-0.5 text-sm text-slate-500">${I18n.t('crud.subtitle.' + this.view)}</p>
-        </div>
-        ${this.view === 'list'
-          ? (canCreate ? html`<button class=${btn('primary')} @click="${() => { this._form.reset(); this.view = 'create'; this.requestUpdate(); }}">${icon('plus', 'size-4')}${I18n.t('common.new')}</button>` : '')
-          : html`<button class=${btn('secondary')} @click="${() => this._backToList()}">${icon('arrow-left', 'size-4')}${I18n.t('common.back')}</button>`}
-      </div>`;
+    const action = this.view === 'list'
+      ? (canCreate ? html`<button class=${bandBtn.accent} @click="${() => { this._form.reset(); this.view = 'create'; this.requestUpdate(); }}">${icon('plus', 'size-4')}${I18n.t('common.new')}</button>` : '')
+      : html`<button class=${bandBtn.ghost} @click="${() => this._backToList()}">${icon('arrow-left', 'size-4')}${I18n.t('common.back')}</button>`;
+    return titleBand(this.label, I18n.t('crud.subtitle.' + this.view), { icon: this._icon, actions: html`${this.view === 'list' ? this.bandActions() : ''}${action}` });
   }
 
   render(): TemplateResult {

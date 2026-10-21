@@ -1,0 +1,61 @@
+/* ══════════════════════════════════════════════════════════════════════
+   PANEL COLORS — built from two base colors:
+     --brand-base   main color (title bands, buttons, links, featured tile)
+     --accent-base  accent color (table headers, "New", active menu item, icons)
+   Each user picks them in "My account" (a preset from lib/palettes.ts or their own);
+   lib/theme.ts sets them on <html>, plus --color-on-primary / --color-on-accent
+   (white or dark text, whichever reads better on that color).
+   The defaults below are the TitiCMS ones.
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --brand-base: #1f5fc4;
+  --accent-base: #f26a10;
+
+  /* Light: 50 = faint tint … 500 = the color … 900 = darkest */
+  --color-brand-50:  color-mix(in oklab, var(--brand-base) 8%, white);
+  --color-brand-100: color-mix(in oklab, var(--brand-base) 16%, white);
+  --color-brand-200: color-mix(in oklab, var(--brand-base) 30%, white);
+  --color-brand-300: color-mix(in oklab, var(--brand-base) 50%, white);
+  --color-brand-400: color-mix(in oklab, var(--brand-base) 75%, white);
+  --color-brand-500: var(--brand-base);
+  /* 600/700 are used as text: start from the readable version of the color (lib/theme.ts → --brand-ink) */
+  --color-brand-600: var(--brand-ink, color-mix(in oklab, var(--brand-base) 85%, black));
+  --color-brand-700: color-mix(in oklab, var(--color-brand-600) 85%, black);
+  --color-brand-800: color-mix(in oklab, var(--brand-base) 60%, black);
+  --color-brand-900: color-mix(in oklab, var(--brand-base) 48%, black);
+
+  --color-accent-50:  color-mix(in oklab, var(--accent-base) 8%, white);
+  --color-accent-100: color-mix(in oklab, var(--accent-base) 16%, white);
+  --color-accent-200: color-mix(in oklab, var(--accent-base) 32%, white);
+  --color-accent-400: color-mix(in oklab, var(--accent-base) 80%, white);
+  --color-accent-500: var(--accent-base);
+  --color-accent-600: var(--accent-ink, color-mix(in oklab, var(--accent-base) 85%, black));
+  --color-accent-700: color-mix(in oklab, var(--color-accent-600) 85%, black);
+}
+
+/* Dark: same meaning as the neutrals there — 50 = faint tint on the dark page, 500 = the color, 600+ = light text */
+:root[data-theme="dark"] {
+  --color-brand-50:  color-mix(in oklab, var(--brand-base) 14%, #0d1117);
+  --color-brand-100: color-mix(in oklab, var(--brand-base) 20%, #0d1117);
+  --color-brand-200: color-mix(in oklab, var(--brand-base) 30%, #0d1117);
+  --color-brand-300: color-mix(in oklab, var(--brand-base) 45%, #0d1117);
+  --color-brand-400: color-mix(in oklab, var(--brand-base) 80%, #0d1117);
+  --color-brand-500: var(--brand-base);
+  --color-brand-600: var(--brand-ink-dark, color-mix(in oklab, var(--brand-base) 62%, white));
+  --color-brand-700: color-mix(in oklab, var(--color-brand-600) 75%, white);
+  --color-brand-800: color-mix(in oklab, var(--brand-base) 30%, white);
+  --color-brand-900: color-mix(in oklab, var(--brand-base) 16%, white);
+
+  --color-accent-50:  color-mix(in oklab, var(--accent-base) 14%, #0d1117);
+  --color-accent-100: color-mix(in oklab, var(--accent-base) 22%, #0d1117);
+  --color-accent-200: color-mix(in oklab, var(--accent-base) 35%, #0d1117);
+  --color-accent-400: color-mix(in oklab, var(--accent-base) 75%, white);
+  --color-accent-500: var(--accent-base);
+  --color-accent-600: var(--accent-ink-dark, color-mix(in oklab, var(--accent-base) 80%, white));
+  --color-accent-700: color-mix(in oklab, var(--color-accent-600) 75%, white);
+}
+
+/* Soft layer on top of a colored band, in the band's text color (works for light and dark colors alike). */
+.on-primary-soft { background-color: color-mix(in srgb, var(--color-on-primary) 16%, transparent); }
+.on-primary-soft-hover:hover { background-color: color-mix(in srgb, var(--color-on-primary) 26%, transparent); }

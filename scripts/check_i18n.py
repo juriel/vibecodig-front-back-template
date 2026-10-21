@@ -21,7 +21,7 @@ PY_KEYS = re.compile(r"""['"]((?:error|site|cli)\.[a-z0-9_.]+)['"]""")
 TS_TERNARY = re.compile(r"""I18n\.tn?\([^)]*?\?\s*['"]([a-z0-9_.]+)['"]\s*:\s*['"]([a-z0-9_.]+)['"]""")
 PLURAL = re.compile(r"""\.tn\(\s*['"]([a-z0-9_.]+)['"]""")
 # Keys built at runtime ('validation.' + error.type, 'crud.subtitle.' + view, 'cms.js.type.' + type).
-DYNAMIC_PREFIXES = ("validation.", "crud.subtitle.", "cms.js.type.")
+DYNAMIC_PREFIXES = ("validation.", "crud.subtitle.", "cms.js.type.", "cms.redirect.type.", "visual.block.", "visual.prop.", "visual.trait.", "quick.size.", "quick.align.", "quick.radius.", "quick.shadow.", "quick.padding.", "quick.weight.", "quick.color.", "account.theme.", "menu.", "home.", "palette.", "account.color_")
 
 
 def load(path: Path) -> dict[str, str]:

@@ -12,6 +12,7 @@ from app.entities.cms_layout import CmsLayout
 from app.entities.cms_page import CmsPage, PageXRegisteredUserGroup
 from app.entities.cms_widget import CmsWidget
 from app.entities.user import User
+from app.services import cms_seo_service
 
 # Language of the published site content (the <html lang> attribute); independent from the admin UI language.
 SITE_LANG = os.environ.get("SITE_LANG", "en")
@@ -82,7 +83,8 @@ def _js_scripts(db: Session, page: CmsPage, kind: str) -> str:
     return "\n".join(scripts)
 
 
-def render_page(db: Session, page: CmsPage) -> str:
+def render_page(db: Session, page: CmsPage, base_url: str) -> str:
+    """base_url: public origin (cms_seo_service.base_url), used for the canonical and Open Graph URLs."""
     keywords = f'<meta name="keywords" content="{html.escape(page.keywords, quote=True)}">' if page.keywords else ""
     return f"""<!DOCTYPE html>
 <html lang="{html.escape(SITE_LANG)}">
@@ -91,6 +93,7 @@ def render_page(db: Session, page: CmsPage) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>{html.escape(page.title or "")}</title>
 {keywords}
+{cms_seo_service.head_tags(db, page, base_url)}
 {_css_links(db, page)}
 {_js_scripts(db, page, "header")}
 </head>

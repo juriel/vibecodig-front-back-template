@@ -1,16 +1,17 @@
-"""Public CMS site (outside /api): /<url>.page, /css/*, /js/*, /media/<folder>/<file>."""
+"""Public CMS site (outside /api): /<url>.page, /css/*, /js/*, /media/<folder>/<file>, /sitemap.xml, /robots.txt."""
 import hashlib
 import html
 from pathlib import Path
+from typing import Optional
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import FileResponse, HTMLResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.i18n import negotiate, t
-from app.services import cms_public_service, cms_render_service
+from app.services import cms_public_service, cms_render_service, cms_seo_service
 
 router = APIRouter(include_in_schema=False)
 
@@ -31,13 +32,34 @@ def _error(request: Request, status: int, message_key: str) -> HTMLResponse:
     return _page_html(lang, status, str(status), t(message_key, lang))
 
 
+def _base(request: Request, db: Session) -> str:
+    return cms_seo_service.base_url(db, str(request.base_url))
+
+
+def redirect_for(request: Request, db: Session) -> Optional[Response]:
+    """The configured redirect for this path, if any (checked before static files, so /index.html can be redirected too)."""
+    redirect = cms_seo_service.find_redirect(db, request.url.path)
+    return RedirectResponse(redirect.target, status_code=redirect.status_code) if redirect else None
+
+
+def not_found(request: Request, db: Session) -> Response:
+    """Unknown route: a configured redirect wins; otherwise the CMS page with URL "404" (status 404) or the plain error."""
+    redirect = redirect_for(request, db)
+    if redirect is not None:
+        return redirect
+    page = cms_seo_service.not_found_page(db)
+    if page is not None and not cms_render_service.is_private(db, page):
+        return HTMLResponse(cms_render_service.render_page(db, page, _base(request, db)), status_code=404)
+    return _error(request, 404, "site.error.page_not_found")
+
+
 def _render(request: Request, db: Session, url: str) -> Response:
     page = cms_render_service.find_page(db, url)
     if page is None:
-        return _error(request, 404, "site.error.page_not_found")
+        return not_found(request, db)
     if cms_render_service.is_private(db, page):
         return _error(request, 403, "site.error.page_private")
-    return HTMLResponse(cms_render_service.render_page(db, page))
+    return HTMLResponse(cms_render_service.render_page(db, page, _base(request, db)))
 
 
 @router.get("/")
@@ -47,6 +69,16 @@ def index(request: Request, db: Session = Depends(get_db)):
         lang = _lang(request)
         return _page_html(lang, 200, t("site.under_construction.title", lang), t("site.under_construction.text", lang))
     return _render(request, db, "")
+
+
+@router.get("/sitemap.xml")
+def sitemap(request: Request, db: Session = Depends(get_db)):
+    return Response(cms_seo_service.sitemap(db, _base(request, db)), media_type="application/xml")
+
+
+@router.get("/robots.txt")
+def robots(request: Request, db: Session = Depends(get_db)):
+    return PlainTextResponse(cms_seo_service.robots(_base(request, db)))
 
 
 @router.get("/{url:path}.page")

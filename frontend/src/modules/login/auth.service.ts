@@ -1,8 +1,9 @@
 import axios from 'axios';
+import type { Appearance } from '../../lib/theme';
 import { GlobalConfig } from '../../global-config';
 
 export interface LoginDTO { login: string; password: string; }
-export interface SessionDTO { token: string; user: any; privileges: string[]; }
+export interface SessionDTO { token: string; user: any; privileges: string[]; preferences?: Appearance; }
 
 export const AuthService = {
   login: (dto: LoginDTO) =>

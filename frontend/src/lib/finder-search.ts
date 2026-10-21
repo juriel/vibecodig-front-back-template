@@ -102,7 +102,7 @@ export class FinderSearch<T extends object = any> extends LitElement {
         </div>
         <input type="hidden" name=${this.name} .value=${this.selected} />
         ${this.results.length ? html`
-          <ul class="absolute inset-x-0 top-full z-30 mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+          <ul class="absolute inset-x-0 top-full z-30 mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-surface py-1 shadow-lg">
             ${this.results.map(i => html`
               <li class="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-brand-50 hover:text-brand-700" @click=${() => this.choose(i)}>
                 ${this.displayFunction ? this.displayFunction(i) : i[this.displayField]}

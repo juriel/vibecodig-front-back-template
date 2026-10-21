@@ -6,3 +6,5 @@ cryptography
 python-dotenv
 pydantic
 PyJWT
+python-multipart
+anthropic==1.12.0

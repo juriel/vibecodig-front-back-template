@@ -7,7 +7,15 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <meta name="robots" content="noindex" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <meta name="theme-color" content="#f4f6f9" />
+  <!-- Applies the last appearance used on this computer before the first paint (lib/theme.ts keeps it up to date). -->
+  <script>try {
+    var a = JSON.parse(localStorage.getItem('appearance') || '{}'), r = document.documentElement;
+    r.dataset.theme = a.theme === 'dark' ? 'dark' : 'light';
+    ['brand-base', 'accent-base', 'color-on-primary', 'color-on-accent', 'brand-ink', 'accent-ink', 'brand-ink-dark', 'accent-ink-dark'].forEach(function (k) { if (a[k]) r.style.setProperty('--' + k, a[k]); });
+  } catch (e) {}</script>
 </head>
 <body>
   <app-root></app-root>

@@ -12,6 +12,13 @@ class CmsPageCreateDTO(BaseModel):
     css: str = ""
     javascript: str = ""
     is_index: bool = False
+    # SEO (stored in cms_page_seo)
+    description: Optional[str] = Field(default=None, max_length=320)
+    og_title: Optional[str] = Field(default=None, max_length=200)
+    og_description: Optional[str] = Field(default=None, max_length=320)
+    og_image: Optional[str] = Field(default=None, max_length=512, pattern=r"^$|^(https?://|/)\S*$")
+    canonical: Optional[str] = Field(default=None, max_length=512, pattern=r"^$|^https?://\S+$")
+    noindex: bool = False
 
 
 class CmsPageUpdateDTO(CmsPageCreateDTO):

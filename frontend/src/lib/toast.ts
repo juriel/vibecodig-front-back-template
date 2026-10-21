@@ -14,7 +14,7 @@ export function toast(message: string, kind: 'info' | 'success' | 'error' = 'inf
 }
 
 const TOAST_COLORS = {
-  info:    'border-slate-200 bg-white text-slate-800',
+  info:    'border-slate-200 bg-surface text-slate-800',
   success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
   error:   'border-red-200 bg-red-50 text-red-800',
 };
@@ -26,7 +26,7 @@ export class AppToast extends LitElement {
   createRenderRoot() { return this; }
   render() {
     return html`
-      <div class="fixed bottom-4 right-4 z-[10000] flex max-w-sm items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg ${TOAST_COLORS[this.kind]}" role="status">
+      <div class="fixed bottom-4 right-4 z-[10000] flex max-w-sm items-start gap-3 rounded-2xl border px-4 py-3 text-sm shadow-2xl shadow-black/40 ${TOAST_COLORS[this.kind]}" role="status">
         <span class="flex-1">${this.message}</span>
         <button class="opacity-60 hover:opacity-100" @click=${() => this.remove()} aria-label="${I18n.t('common.close')}">${icon('x', 'size-4')}</button>
       </div>`;
@@ -56,8 +56,8 @@ export class AppConfirm extends LitElement {
   createRenderRoot() { return this; }
   render() {
     return html`
-      <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" @click=${() => this.resolve(false)}>
-        <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" @click=${(e: Event) => e.stopPropagation()}>
+      <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" @click=${() => this.resolve(false)}>
+        <div class="w-full max-w-sm rounded-[20px] border border-slate-200 bg-surface p-6 shadow-2xl shadow-black/50" role="dialog" aria-modal="true" @click=${(e: Event) => e.stopPropagation()}>
           <h3 class="text-base font-semibold text-slate-900">${this.title}</h3>
           <p class="mt-2 text-sm text-slate-600">${this.question}</p>
           <div class="mt-6 flex justify-end gap-2">

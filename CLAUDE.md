@@ -8,6 +8,13 @@
 - [x] Panel `/admin`: menú lateral + inicio con tarjetas; secciones CMS aún "en construcción" (`pending-page`)
 - [x] CMS público + administración de Pages (`/admin/pages`), Layouts (`/admin/layouts`), Widgets (`/admin/widgets`), CSS globales (`/admin/css`) y JS globales (`/admin/javascripts`); pendientes: Configuraciones globales, Carpetas y Archivos (media manager)
 - [x] Perfiles (`/admin/profile`): CRUD de `profile` + asignación de privilegios agrupados por categoría; Privilegios (`/admin/privilege`): catálogo de solo lectura
+- [x] Editor visual de páginas (GrapesJS 0.23.6, botón "Editar visualmente" en el formulario de páginas): edita el mismo HTML + CSS de la página viéndola con el CSS global del sitio; bloques que se agregan con clic o arrastrando, edición de texto en el lienzo, panel de configuración (enlace, imagen) y de estilo, subida de imágenes y PDF, vista computador/celular, deshacer
+- [x] SEO del sitio público: meta description, canónica, Open Graph/Twitter y `noindex` por página (`cms_page_seo`), widget `head`, `/sitemap.xml`, `/robots.txt`, página 404 del CMS, redirecciones 301/302 (`/admin/redirects`, `cms_redirect`) y compresión gzip
+- [x] Login (`login-page.ts`): título en dos líneas y un cursor que hace clic dejando una onda en los colores del usuario; se detiene con `prefers-reduced-motion`
+- [x] Editor de código tipo VS Code (Monaco, `lib/code-editor.ts`) en todos los campos HTML/CSS/JS (`FormField.mono` + `language`), con sugerencias de IA que se aceptan con Tab
+- [x] Asistente de IA (`backend/app/services/ai_service.py`, SDK oficial `anthropic`): «Crear con IA» en Páginas escribe un borrador oculto (noindex) con las clases, widgets y plantilla del sitio; sugerencias de código en línea. Se activa con `ANTHROPIC_API_KEY` en `.env`; sin clave el panel funciona y avisa
+- [x] Mi cuenta (`/admin/account`, desde el menú del usuario): nombre y correo, tema claro/oscuro (guardado por usuario), idioma y cambio de contraseña
+- [x] Inicio sin scroll (`modules/home/home-page.ts`, lista `QUICK`): saludo gigante condensado ("Hola, <nombre>") con una única animación de entrada; las 8 secciones de creación de TitiCMS (Páginas destacada en azul, el resto con ícono naranja); cuenta, usuarios, etc. quedan en los menús
 - [x] Usuarios (`/admin/user`): CRUD sobre `users` con asignación de perfiles; borrado lógico (`deleted=1`)
 
 ## Stack
@@ -78,8 +85,11 @@ frontend/
 ## Endpoints
 | Método | Path (bajo /api) | Descripción |
 |--------|------------------|-------------|
-| POST | /auth/login | `{login, password}` → `{token, user, privileges[]}` (401 si credenciales inválidas) |
-| GET | /auth/me | usuario y privilegios del token actual |
+| POST | /auth/login | `{login, password}` → `{token, user, privileges[], preferences}` (401 si credenciales inválidas) |
+| GET | /auth/me | usuario, privilegios y `preferences` ({theme}) del token actual |
+| PUT | /auth/me | `{name, email?}`: el usuario actual edita sus datos (Mi cuenta) |
+| PUT | /auth/me/password | `{current_password, new_password}` (mín. 6): 400 si la actual no coincide; nueva salt + SHA-256 como el resto |
+| PUT | /auth/me/preferences | actualización parcial `{theme?: light\|dark, palette?, brand?: #rrggbb, accent?: #rrggbb}` del usuario actual |
 | GET | /users | lista usuarios no borrados con sus perfiles (`VIEW_USER`) |
 | GET | /users/profiles | perfiles asignables por el usuario actual (`VIEW_USER`/`ADD_USER`/`EDIT_USER`) |
 | GET | /users/{login} | detalle (`VIEW_USER`) |
@@ -89,13 +99,20 @@ frontend/
 | GET | /cms/pages/layouts | plantillas para el selector del formulario de página (`ADD_CMS_PAGE`/`EDIT_CMS_PAGE`) |
 | GET, POST | /cms/pages | lista (sin contenido pesado) / crea; el dueño es el usuario actual (`VIEW_`/`ADD_CMS_PAGE`) |
 | GET, PUT, DELETE | /cms/pages/{id} | detalle completo / edita / elimina (`VIEW_`/`EDIT_`/`DELETE_CMS_PAGE`) |
+| GET | /cms/pages/editor-assets | hojas de estilo globales activas que el editor visual carga en su lienzo (`ADD_CMS_PAGE`/`EDIT_CMS_PAGE`) |
+| GET, POST | /cms/media | archivos subidos (`VIEW_FOLDER`/`ADD_FOLDER`) / sube uno (multipart, campo `file`; `ADD_FOLDER`): imágenes PNG/JPG/GIF/WEBP/SVG → carpeta `imagenes`, PDF → `documentos`; máx. 15 MB; responde `{id, name, src: /media/<carpeta>/<archivo>, type}` |
 | GET | /cms/layouts/types | tipos de plantilla (`ADD_CMS_LAYOUT`/`EDIT_CMS_LAYOUT`) |
 | GET, POST | /cms/layouts | plantillas (`VIEW_`/`ADD_CMS_LAYOUT`) |
 | GET, PUT, DELETE | /cms/layouts/{id} | detalle / edita / elimina; 409 si la usa alguna página (`VIEW_`/`EDIT_`/`DELETE_CMS_LAYOUT`) |
 | GET, POST | /cms/widgets | widgets con conteo de usos (privilegios de páginas: `VIEW_`/`ADD_CMS_PAGE`) |
 | GET, PUT, DELETE | /cms/widgets/{id} | detalle / edita / elimina; 409 al renombrar o borrar si está en uso (`VIEW_`/`EDIT_`/`DELETE_CMS_PAGE`) |
+| GET, POST | /cms/redirects | redirecciones / crea `{source, target, status_code: 301\|302, active}` (privilegios de páginas: `VIEW_`/`ADD_CMS_PAGE`) |
+| GET, PUT, DELETE | /cms/redirects/{id} | detalle / edita / elimina (`VIEW_`/`EDIT_`/`DELETE_CMS_PAGE`) |
 | GET, POST | /cms/css, /cms/js | recursos globales (sin contenido pesado, con `content_length` y `source`: `external`/`own`) / crea (`VIEW_`/`ADD_CMS_LAYOUT`) |
 | GET, PUT, DELETE | /cms/css/{code}, /cms/js/{code} | detalle con `content` / edita (el `code` es inmutable) / elimina (`VIEW_`/`EDIT_`/`DELETE_CMS_LAYOUT`) |
+| GET | /ai/status | `{enabled, draft_model, complete_model}` (cualquier usuario con sesión) |
+| POST | /ai/draft-page | `{brief, cms_layout?}` → crea un borrador de página oculto con IA y lo devuelve (`ADD_CMS_PAGE`); 503 si la IA no está configurada |
+| POST | /ai/complete | `{language: html\|css\|javascript, before, after}` → `{text}` sugerencia para insertar en el cursor (privilegios de páginas o plantillas) |
 | GET | /privileges | catálogo completo de privilegios, solo lectura (`VIEW_PROFILE`) |
 | GET | /profiles/privileges | privilegios que el usuario actual puede conceder (`ADD_PROFILE`/`EDIT_PROFILE`) |
 | GET | /profiles | lista perfiles con `privilege_codes[]` (`VIEW_PROFILE`) |
@@ -125,6 +142,10 @@ frontend/
   Las páginas privadas (con filas en `page_x_registered_user_group`) responden 403 y no exponen su CSS/JS: el login de usuarios registrados no está portado.
   El media manager lee `vfs.path` relativo a `VFS_PATH` (`.env`, default `/opt/vfs`) y nunca sale de esa raíz; los SVG/HTML servidos llevan `Content-Security-Policy: sandbox`.
 - Reglas de CMS (admin): URL de página única y con patrón `[A-Za-z0-9][A-Za-z0-9_-/]*`; solo una página índice; el dueño y la fecha de creación no cambian al editar. Una sola plantilla predeterminada por tipo (la primera de un tipo lo es siempre; al borrar la predeterminada se promueve otra). No se borra una plantilla en uso. Los widgets se nombran con `[A-Za-z0-9_-]`, y no se renombran ni borran si alguna plantilla o página los referencia. Los widgets no tienen privilegios propios: usan los de páginas.
+- SEO (`app/services/cms_seo_service.py`): los campos SEO de una página (`description`, `og_title`, `og_description`, `og_image`, `canonical`, `noindex`) viajan en el mismo DTO de páginas pero se guardan en `cms_page_seo` (1:1; `cms_page` queda como en el CMS original). En el `<head>` salen description, canónica (vacía = URL propia; la página índice siempre es `/`), Open Graph y Twitter Card (título/descripción al compartir caen al título/description), `og:site_name`/`og:locale` y, al final, el widget llamado `head` (favicon, verificaciones, geo). `noindex` → `<meta name="robots" content="noindex, follow">`, sin canónica y fuera del sitemap.
+  Ajustes del sitio en `global_configuration` (tabla del CMS original, aún sin pantalla): `seo.site_url` (dominio público para canónicas, OG, sitemap y robots; vacío = el host del request), `seo.site_name`, `seo.locale` (p. ej. `es_CO`).
+  `GET /sitemap.xml`: páginas no privadas, sin `noindex`, sin canónica ajena y distintas de la 404. `GET /robots.txt`: bloquea `/admin` y `/api/` y apunta al sitemap.
+  Rutas desconocidas (y `/<url>.page` inexistentes): primero una redirección activa de `cms_redirect` (se revisa antes que los archivos de `web/`, así `/index.html` también se puede redirigir); si no, la página del CMS con URL `404` (con estado 404 y `noindex`); si no existe, la 404 simple. Las redirecciones no pueden salir de rutas propias del sitio (`/admin`, `/api/`, `/css/`, `/js/`, `/media/`, `/dist/`, `*.page`, sitemap, robots). `GZipMiddleware` comprime respuestas de más de 1 KB.
 - Reglas de CSS/JS globales (`cms_css`, `cms_js`; sin privilegios propios: usan los de plantillas, `*_CMS_LAYOUT`): un recurso es EXTERNO (`url` http/https, sin path ni contenido; se guardan vacíos) o PROPIO (`path` relativo terminado en `.css`/`.js` + `content`, servido en `/css/<path>` o `/js/<path>`), nunca ambos. El `path` es único y no puede tapar el CSS/JS propio de una página (`/css/<url>.css`); a la inversa, una página con CSS/JS propio no puede usar una URL cuyo path ya sirve un global. `code` (PK, `[A-Za-z0-9_-]`, máx. 32) no cambia tras crear. Solo los `active` se incluyen en el sitio, por `order_show`; los JS llevan `type` `header` (en el `<head>`) o `footer`. `/css/*` y `/js/*` se sirven con `ETag` y `Cache-Control: public, no-cache` (revalidan siempre: una edición se ve al instante; `If-None-Match` → 304).
 - Reglas de perfiles: los perfiles con `editable=0` (sistema, p. ej. Administrator) no se modifican ni borran. Solo se pueden CONCEDER privilegios que el actor posee (`ALL` puede todo). Un perfil con `ALL` solo lo administra un super usuario. No se borra un perfil en uso; la tabla no tiene claves foráneas, así que la integridad la garantiza la app. El catálogo de privilegios es de solo lectura (los códigos los define el código de la plataforma).
 - Reglas de usuarios: solo un super usuario (`ALL`) puede asignar perfiles con `ALL` o modificar/borrar a otro super usuario. Usuarios borrados (`deleted=1`) no pueden iniciar sesión ni reutilizar su login. El login responde el mismo 401 para usuario inexistente o clave errónea.
@@ -169,6 +190,12 @@ repo.find_all_by(eager=EAGER, campo="valor")
 ## Convenciones frontend
 
 ### Diseño (Tailwind)
+- Temas claro (por defecto) y oscuro (`styles.css`): `@theme` define el claro y `:root[data-theme="dark"]` redefine las mismas variables. Superficies `bg-ink` (página), `bg-surface` (tarjetas), `bg-raised` (campos/hover). En oscuro la escala `slate` y `brand` se invierten (50 = oscuro, 900 = claro), así cada clase conserva su sentido (`text-slate-900` = texto más fuerte, `border-slate-200` = línea). No usar `bg-white`: usar `bg-surface`.
+- Colores del panel por usuario: `src/palettes/palette.css` deriva las escalas `brand` (principal) y `accent` (acento) de dos colores base (`--brand-base`, `--accent-base`; por defecto los de TitiCMS) para claro y oscuro. Cada usuario elige en Mi cuenta un estilo predefinido (`lib/palettes.ts`: titi = «Clásico», nexvia, ocean, forest, grape, ruby, slate) o sus dos colores ("custom"); se guarda en `user_preference` (palette, brand, accent) y `lib/theme.ts` lo aplica: calcula el texto blanco u oscuro sobre cada color (`--color-on-primary`, `--color-on-accent`) y una versión legible como texto (`--brand-ink`, `--accent-ink`, contraste ≥ 4.5). Para añadir un estilo: agregarlo en `lib/palettes.ts` y su nombre `palette.<id>` en los catálogos.
+- Pantallas al estilo TitiCMS (`lib/title-band.ts`): franja azul con ícono, título y acciones ("Nuevo" en naranja); tablas con encabezado naranja, filas alternadas, acciones de color (ver en el color principal, editar verde, eliminar rojo) y paginación clásica con movimiento (flechas en círculo, números con «…»; el círculo activo se desliza a la página elegida y una línea de progreso muestra el avance; las filas entran con una transición corta). Movimiento desactivado con `prefers-reduced-motion`.. Formularios a todo el ancho.
+- Colores de TitiCMS, cada uno por separado (sin degradados que los mezclen): `brand` = azul titi para botones, enlaces, íconos y títulos; `accent` = naranja titi para la marca, la opción activa del menú (fondo y texto), los íconos de accesos rápidos, la línea bajo los títulos de pantalla, el avatar y el botón "Editar visualmente". El oscuro sigue la paleta de GitHub (#0d1117 / #161b22 / #30363d, texto #e6edf3) para que se lea bien.
+- El tema es de cada usuario: tabla `user_preference` (login, theme, palette, brand, accent; columnas nuevas se agregan al arrancar en `backend/main.py` `_add_missing_columns`), viaja en `preferences` del login y de `/auth/me`, se cambia en Mi cuenta (`PUT /auth/me/preferences`). `lib/theme.ts` lo aplica; `localStorage` solo recuerda el último del equipo para que `index.html` lo pinte sin parpadeo.
+- Tipografía: Onest (interfaz) y Barlow Condensed (`font-display`, solo títulos de pantalla en mayúsculas). Botones píldora.
 - Todos los componentes son light DOM (`createRenderRoot() { return this; }`) para que apliquen las utilidades de Tailwind. No usar `static styles`/shadow DOM.
 - Colores y fuente se cambian en el bloque `@theme` de `styles.css` (escala `brand-*` y `sidebar*`); usar `bg-brand-600`, no colores fijos.
 - Reutilizar `ui`/`btn()` de `lib/ui.ts` e `icon()` de `lib/icons.ts` en lugar de repetir clases.
@@ -213,6 +240,17 @@ export class NombrePage extends CrudPage<NombreDTO> {
 ```
 Registrar: importar en `frontend/src/boot.ts` y añadir ruta `/admin/<nombre>` en `frontend/src/app-root.ts` (antes de las secciones pendientes). Para que aparezca en el menú y en las tarjetas del inicio, agregar la entrada en `MENU` de `frontend/src/menu.ts` (ruta `/admin/<nombre>`, icono de `lib/icons.ts` y `privileges`); si aún no tiene componente propio, márcala `pending: true` y `app-root` la muestra con `pending-page` (quitar `pending` al registrar su ruta).
 
+### Editor visual de páginas (`modules/cms-page/page-visual-editor.ts`)
+- GrapesJS se carga bajo demanda (`import()` → chunk aparte, ~1,1 MB): el panel no lo descarga hasta pulsar "Editar visualmente".
+- Recibe el HTML y el CSS que el formulario tiene en ese momento y, al "Aplicar cambios", los devuelve a los mismos campos (`page_content`, `css`); se publican con el "Guardar" del formulario. La página sigue guardándose como HTML + CSS.
+- `allowScripts` y `allowUnsafeAttr` activos: conserva JSON-LD y `onclick="..."` del contenido. `componentFirst`: los estilos van al elemento seleccionado (regla `#id` en el CSS de la página), nunca a una clase compartida; las etiquetas de clases están ocultas.
+- En el lienzo (solo ahí) se muestran visibles los elementos que el sitio revela al hacer scroll (`.animate-on-scroll`, `.fade-in`, `.reveal`, `[data-aos]`).
+- Panel "Ajustes rápidos" (`quick-style-panel.ts`) para el elemento seleccionado: colores de texto y fondo (muestras = variables CSS de `:root` del sitio + selector libre), tamaño (A−/A+ y predefinidos), tipo de letra, formato, alineación, esquinas, sombra, espacio interior, estilo de botón (`btn-primary`/`btn-outline`), ancho y centrado de imagen, y "Quitar mis cambios". Usa `StyleManager.addStyleTargets`, así en vista Celular el cambio va a un `@media` y no afecta al computador. El Style Manager completo queda en "Más opciones (avanzado)".
+- `server.py` envía `Cache-Control: no-cache` en `/dist/*`, `/assets/i18n/*` y `/admin*` (el bundle no lleva hash: sin esto el navegador seguía usando el panel viejo tras actualizar).
+- Bloques: clic = se insertan después del elemento seleccionado (o al final) vía `appendOnClick`; también se arrastran. Imagen abre el selector (subir o elegir); Documento PDF pide el archivo y enlaza a él. Al seleccionar una imagen o un enlace aparece "Configuración" (traits: lleva a, abrir en, descripción) con "Cambiar imagen" / "Enlazar a un PDF".
+- Subidas (`app/services/cms_media_service.py`): nombre limpio (sin tildes ni espacios) y único por carpeta (`-2`, `-3`...), guardado en el VFS como el CMS original (`VFS_PATH/cms/aa/bb/cc/dd/<uuid>`, filas en `vfs` y `cms_mediamanager_file`). Requiere `python-multipart`.
+- Bloques propios en `blocks()` (usan clases del sitio como `container`, `btn btn-primary`); textos en `visual.*` del catálogo i18n.
+
 ### Extensiones de `crud/`
 - `CrudTable`: sobrescribir `canEditRow(item)` / `canDeleteRow(item)` para ocultar acciones por fila.
 - `CrudTable`/`CrudPage`: `get permission()` (default `prefix`) fija el prefijo de los privilegios si el módulo comparte los de otro (ej. widgets usan `cms-page`).
@@ -233,6 +271,12 @@ Registrar: importar en `frontend/src/boot.ts` y añadir ruta `/admin/<nombre>` e
 | rows / mono / placeholder / help | number / boolean / string / string | `textarea`: filas y fuente monoespaciada (HTML/CSS/JS); `placeholder` y texto de `help` bajo el campo (cualquier tipo) |
 | groups | Record<string,Record<string,string>> | solo `checkboxes`: opciones agrupadas por categoría `{ grupo: { value: label } }` (con botón "Todos / ninguno") |
 | validator | (v) => boolean | validación custom |
+
+## Diseño del panel
+Skill del proyecto **`comtor-moderno`** (`.claude/skills/comtor-moderno/`): identidad, tokens, componentes, reglas de diseño del usuario y verificación. Úsala para cualquier cambio visual del panel.
+
+## Pruebas de navegador
+`scripts/e2e/run.sh` (ver `scripts/e2e/README.md`): con un servidor de pruebas en `:8001`, prueba login, inicio, Mi cuenta, colores, paginación, editor visual, subidas, ajustes rápidos y páginas de ejemplo; usa administradores temporales `zz_test_*` y limpia al terminar.
 
 ## Skills (`.claude/commands/`)
 - `/backend-init-project`, `/frontend-init-project` — completan nombre, config y limpian ejemplos
