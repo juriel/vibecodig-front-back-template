@@ -8,10 +8,14 @@ import { PALETTES } from '../../lib/palettes';
 import { I18n } from '../../lib/i18n';
 import { ui, btn } from '../../lib/ui';
 import { icon } from '../../lib/icons';
-import { toast } from '../../lib/toast';
+import { toast, confirmDialog } from '../../lib/toast';
+import { formatDateTimeString } from '../../lib/date';
 import { titleBand } from '../../lib/title-band';
 
-/** "My account": the signed-in user's own data, appearance (theme, saved in the account), language and password. */
+interface ApiToken { id: number; name: string; prefix: string; created_at: string; last_used_at: string | null; token?: string }
+
+/** "My account": the signed-in user's own data, appearance (theme, saved in the account), language, password and
+ *  the personal tokens that connect Claude (MCP) with their permissions. */
 @customElement('account-page')
 export class AccountPage extends LitElement {
   @state() private theme: ThemeName = Theme.current;
@@ -21,9 +25,105 @@ export class AccountPage extends LitElement {
   @state() private savingData = false;
   @state() private savingPassword = false;
   @state() private errors: Record<string, string> = {};
+  @state() private tokens: ApiToken[] = [];
+  @state() private creatingToken = false;
+  /** The token just created: shown in clear once, until the user closes the notice. */
+  @state() private newToken: ApiToken | null = null;
   private api = GlobalConfig.getInstance().apiUrl;
 
   createRenderRoot() { return this; }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.loadTokens();
+  }
+
+  private async loadTokens() {
+    try {
+      this.tokens = (await axios.get<ApiToken[]>(this.api + 'auth/me/tokens')).data;
+    } catch {
+      toast(I18n.t('account.tokens.load_error'), 'error');
+    }
+  }
+
+  private async createToken(e: SubmitEvent) {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const name = String(new FormData(form).get('token_name')).trim();
+    if (!name) return;
+    this.creatingToken = true;
+    try {
+      this.newToken = (await axios.post<ApiToken>(this.api + 'auth/me/tokens', { name })).data;
+      form.reset();
+      await this.loadTokens();
+    } catch (err) {
+      toast(this.message(err, 'crud.save_error'), 'error');
+    } finally {
+      this.creatingToken = false;
+    }
+  }
+
+  private async copyToken() {
+    try {
+      await navigator.clipboard.writeText(this.newToken?.token ?? '');
+      toast(I18n.t('account.tokens.copied'), 'success');
+    } catch {
+      this.querySelector<HTMLInputElement>('#new-token')?.select();   // no clipboard access (http): leave it selected
+    }
+  }
+
+  private async revokeToken(t: ApiToken) {
+    if (!(await confirmDialog(I18n.t('account.tokens.revoke_confirm', t.name), { danger: true, okLabel: I18n.t('account.tokens.revoke') }))) return;
+    try {
+      await axios.delete(this.api + `auth/me/tokens/${t.id}`);
+      if (this.newToken?.id === t.id) this.newToken = null;
+      toast(I18n.t('account.tokens.revoked'), 'success');
+      await this.loadTokens();
+    } catch (err) {
+      toast(this.message(err, 'crud.delete_error'), 'error');
+    }
+  }
+
+  private tokensSection() {
+    return html`
+      ${this.newToken ? html`
+        <div class="mb-6 rounded-2xl border-2 border-accent-500 bg-accent-50 p-5" role="status">
+          <p class="font-semibold text-slate-900">${I18n.t('account.tokens.created_title')}</p>
+          <p class="mt-1 text-sm text-slate-600">${I18n.t('account.tokens.created_help')}</p>
+          <div class="mt-4 flex flex-wrap gap-3">
+            <input id="new-token" readonly .value=${this.newToken.token ?? ''} @focus=${(e: Event) => (e.target as HTMLInputElement).select()}
+                   class="${ui.input} min-w-0 flex-1 font-mono text-sm" />
+            <button type="button" class=${btn('primary')} @click=${this.copyToken}>${icon('clipboard', 'size-4')}${I18n.t('account.tokens.copy')}</button>
+            <button type="button" class=${btn('secondary')} @click=${() => { this.newToken = null; }}>${I18n.t('account.tokens.done')}</button>
+          </div>
+        </div>` : ''}
+
+      <form class="flex flex-wrap items-end gap-3" @submit=${this.createToken}>
+        <div class="min-w-[16rem] flex-1">
+          <label for="token_name" class=${ui.label}>${I18n.t('account.tokens.name')}</label>
+          <input id="token_name" name="token_name" required maxlength="64" autocomplete="off" placeholder=${I18n.t('account.tokens.name_placeholder')} class=${ui.input} />
+        </div>
+        <button type="submit" class=${btn('primary')} ?disabled=${this.creatingToken}>${icon('key', 'size-4')}${I18n.t(this.creatingToken ? 'account.tokens.creating' : 'account.tokens.create')}</button>
+      </form>
+
+      ${this.tokens.length === 0
+        ? html`<p class="mt-6 text-sm text-slate-500">${I18n.t('account.tokens.empty')}</p>`
+        : html`
+          <ul class="mt-6 divide-y divide-slate-200 rounded-2xl border border-slate-200">
+            ${this.tokens.map(t => html`
+              <li class="flex flex-wrap items-center gap-4 px-5 py-4">
+                <span class="flex size-10 items-center justify-center rounded-xl bg-accent-50 text-accent-600">${icon('key', 'size-5')}</span>
+                <span class="min-w-0 flex-1">
+                  <span class="block font-semibold text-slate-900">${t.name} <span class="ml-1 font-mono text-xs font-normal text-slate-500">${t.prefix}…</span></span>
+                  <span class="block text-sm text-slate-500">
+                    ${I18n.t('account.tokens.created_at', formatDateTimeString(t.created_at))} ·
+                    ${t.last_used_at ? I18n.t('account.tokens.last_used', formatDateTimeString(t.last_used_at)) : I18n.t('account.tokens.never_used')}
+                  </span>
+                </span>
+                <button type="button" class=${btn('danger')} @click=${() => this.revokeToken(t)}>${icon('trash', 'size-4')}${I18n.t('account.tokens.revoke')}</button>
+              </li>`)}
+          </ul>`}`;
+  }
 
   private message(err: any, fallback: string) {
     const d = err.response?.data?.detail;
@@ -201,6 +301,8 @@ export class AccountPage extends LitElement {
             <button type="button" role="radio" aria-checked=${code === I18n.lang} @click=${() => this.setLanguage(code)}
                     class="rounded-full border-2 px-6 py-2.5 text-base font-semibold transition-colors ${code === I18n.lang ? 'border-brand-500 text-brand-600' : 'border-slate-200 text-slate-700 hover:border-slate-400'}">${label}</button>`)}
         </div>`)}
+
+      ${this.section(I18n.t('account.tokens'), I18n.t('account.tokens_help'), this.tokensSection())}
 
       ${this.section(I18n.t('account.password'), I18n.t('account.password_help'), html`
         <form class="space-y-4" @submit=${this.changePassword}>

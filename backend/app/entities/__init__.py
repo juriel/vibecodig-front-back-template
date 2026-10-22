@@ -3,6 +3,7 @@ from app.entities.privilege import Privilege
 from app.entities.profile import Profile
 from app.entities.user import User
 from app.entities.user_preference import UserPreference
+from app.entities.api_token import ApiToken
 from app.entities.cms_layout import CmsTypeLayout, CmsLayout
 from app.entities.cms_page import CmsPage, PageXRegisteredUserGroup
 from app.entities.cms_widget import CmsWidget

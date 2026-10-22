@@ -19,7 +19,7 @@ HASH=$(python3 -c "import hashlib; print(hashlib.sha256(b'ABCDEFPruebaClaude-123
 
 reset_users() {
   $M -e "UPDATE cms_page SET owner='jhonny' WHERE owner LIKE 'zz_test%';
-         DELETE FROM user_preference WHERE login LIKE 'zz_test%'; DELETE FROM user_x_profile WHERE login LIKE 'zz_test%'; DELETE FROM users WHERE login LIKE 'zz_test%';
+         DELETE FROM api_token WHERE login LIKE 'zz_test%'; DELETE FROM user_preference WHERE login LIKE 'zz_test%'; DELETE FROM user_x_profile WHERE login LIKE 'zz_test%'; DELETE FROM users WHERE login LIKE 'zz_test%';
          INSERT INTO users (login,password,salt,name,email,deleted) VALUES ('zz_test_a','$HASH','ABCDEF','Jhonny Hortua',NULL,0),('zz_test_b','$HASH','ABCDEF','Jefe',NULL,0);
          INSERT INTO user_x_profile (login,profile) VALUES ('zz_test_a',1),('zz_test_b',1);"
 }
@@ -31,11 +31,11 @@ remove_test_media() {   # files uploaded by clic.mjs / rapido.mjs
          DELETE s FROM cms_page_seo s JOIN cms_page p ON p.id=s.cms_page WHERE p.url LIKE 'borrador-ia%' OR p.url='zz-visual';
          DELETE FROM cms_page WHERE url LIKE 'borrador-ia%' OR url='zz-visual';"
 }
-cleanup() { reset_users; $M -e "DELETE FROM user_preference WHERE login LIKE 'zz_test%'; DELETE FROM user_x_profile WHERE login LIKE 'zz_test%'; DELETE FROM users WHERE login LIKE 'zz_test%';"; remove_test_media; }
+cleanup() { reset_users; $M -e "DELETE FROM api_token WHERE login LIKE 'zz_test%'; DELETE FROM user_preference WHERE login LIKE 'zz_test%'; DELETE FROM user_x_profile WHERE login LIKE 'zz_test%'; DELETE FROM users WHERE login LIKE 'zz_test%';"; remove_test_media; }
 trap cleanup EXIT
 
 # ia.mjs needs the server started with AI_FAKE=1; it only runs when asked for by name.
-TESTS=("$@"); [ ${#TESTS[@]} -eq 0 ] && TESTS=(login inicio cuenta colores pager visual clic rapido ejemplos)
+TESTS=("$@"); [ ${#TESTS[@]} -eq 0 ] && TESTS=(login inicio cuenta tokens colores pager visual clic rapido ejemplos)
 failed=0
 for t in "${TESTS[@]}"; do
   reset_users; remove_test_media

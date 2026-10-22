@@ -10,10 +10,10 @@
 - [x] Perfiles (`/admin/profile`): CRUD de `profile` + asignación de privilegios agrupados por categoría; Privilegios (`/admin/privilege`): catálogo de solo lectura
 - [x] Editor visual de páginas (GrapesJS 0.23.6, botón "Editar visualmente" en el formulario de páginas): edita el mismo HTML + CSS de la página viéndola con el CSS global del sitio; bloques que se agregan con clic o arrastrando, edición de texto en el lienzo, panel de configuración (enlace, imagen) y de estilo, subida de imágenes y PDF, vista computador/celular, deshacer
 - [x] SEO del sitio público: meta description, canónica, Open Graph/Twitter y `noindex` por página (`cms_page_seo`), widget `head`, `/sitemap.xml`, `/robots.txt`, página 404 del CMS, redirecciones 301/302 (`/admin/redirects`, `cms_redirect`) y compresión gzip
-- [x] Login (`login-page.ts`): título en dos líneas y un cursor que hace clic dejando una onda en los colores del usuario; se detiene con `prefers-reduced-motion`
+- [x] Login (`login-page.ts`): a la izquierda, video de demostración del panel (`web/assets/video/panel-demo.mp4`, mudo y en bucle; hecho con Remotion, composición `CmsDemo` en `~/Documents/video-promo`); queda quieto con `prefers-reduced-motion`
 - [x] Editor de código tipo VS Code (Monaco, `lib/code-editor.ts`) en todos los campos HTML/CSS/JS (`FormField.mono` + `language`), con sugerencias de IA que se aceptan con Tab
 - [x] Asistente de IA (`backend/app/services/ai_service.py`, SDK oficial `anthropic`): «Crear con IA» en Páginas escribe un borrador oculto (noindex) con las clases, widgets y plantilla del sitio; sugerencias de código en línea. Se activa con `ANTHROPIC_API_KEY` en `.env`; sin clave el panel funciona y avisa
-- [x] Mi cuenta (`/admin/account`, desde el menú del usuario): nombre y correo, tema claro/oscuro (guardado por usuario), idioma y cambio de contraseña
+- [x] Mi cuenta (`/admin/account`, desde el menú del usuario): nombre y correo, tema claro/oscuro (guardado por usuario), idioma, cambio de contraseña y «Conectar con Claude»: tokens personales (`api_token`) que cada usuario crea y revoca, para el futuro servidor MCP
 - [x] Inicio sin scroll (`modules/home/home-page.ts`, lista `QUICK`): saludo gigante condensado ("Hola, <nombre>") con una única animación de entrada; las 8 secciones de creación de TitiCMS (Páginas destacada en azul, el resto con ícono naranja); cuenta, usuarios, etc. quedan en los menús
 - [x] Usuarios (`/admin/user`): CRUD sobre `users` con asignación de perfiles; borrado lógico (`deleted=1`)
 
@@ -89,6 +89,9 @@ frontend/
 | GET | /auth/me | usuario, privilegios y `preferences` ({theme}) del token actual |
 | PUT | /auth/me | `{name, email?}`: el usuario actual edita sus datos (Mi cuenta) |
 | PUT | /auth/me/password | `{current_password, new_password}` (mín. 6): 400 si la actual no coincide; nueva salt + SHA-256 como el resto |
+| GET | /auth/me/tokens | tokens activos del usuario actual `{id, name, prefix, created_at, last_used_at}` (nunca el secreto) |
+| POST | /auth/me/tokens | `{name}` → 201 con `token` en claro (única vez; `ncms_…`); máx. 10 activos (409) |
+| DELETE | /auth/me/tokens/{id} | revoca uno propio (204); de otro usuario o ya revocado → 404 |
 | PUT | /auth/me/preferences | actualización parcial `{theme?: light\|dark, palette?, brand?: #rrggbb, accent?: #rrggbb}` del usuario actual |
 | GET | /users | lista usuarios no borrados con sus perfiles (`VIEW_USER`) |
 | GET | /users/profiles | perfiles asignables por el usuario actual (`VIEW_USER`/`ADD_USER`/`EDIT_USER`) |
@@ -148,6 +151,7 @@ frontend/
   Rutas desconocidas (y `/<url>.page` inexistentes): primero una redirección activa de `cms_redirect` (se revisa antes que los archivos de `web/`, así `/index.html` también se puede redirigir); si no, la página del CMS con URL `404` (con estado 404 y `noindex`); si no existe, la 404 simple. Las redirecciones no pueden salir de rutas propias del sitio (`/admin`, `/api/`, `/css/`, `/js/`, `/media/`, `/dist/`, `*.page`, sitemap, robots). `GZipMiddleware` comprime respuestas de más de 1 KB.
 - Reglas de CSS/JS globales (`cms_css`, `cms_js`; sin privilegios propios: usan los de plantillas, `*_CMS_LAYOUT`): un recurso es EXTERNO (`url` http/https, sin path ni contenido; se guardan vacíos) o PROPIO (`path` relativo terminado en `.css`/`.js` + `content`, servido en `/css/<path>` o `/js/<path>`), nunca ambos. El `path` es único y no puede tapar el CSS/JS propio de una página (`/css/<url>.css`); a la inversa, una página con CSS/JS propio no puede usar una URL cuyo path ya sirve un global. `code` (PK, `[A-Za-z0-9_-]`, máx. 32) no cambia tras crear. Solo los `active` se incluyen en el sitio, por `order_show`; los JS llevan `type` `header` (en el `<head>`) o `footer`. `/css/*` y `/js/*` se sirven con `ETag` y `Cache-Control: public, no-cache` (revalidan siempre: una edición se ve al instante; `If-None-Match` → 304).
 - Reglas de perfiles: los perfiles con `editable=0` (sistema, p. ej. Administrator) no se modifican ni borran. Solo se pueden CONCEDER privilegios que el actor posee (`ALL` puede todo). Un perfil con `ALL` solo lo administra un super usuario. No se borra un perfil en uso; la tabla no tiene claves foráneas, así que la integridad la garantiza la app. El catálogo de privilegios es de solo lectura (los códigos los define el código de la plataforma).
+- Tokens personales (`api_token`, `app/services/api_token_service.py`): se guarda solo el SHA-256 del token y su prefijo; revocar marca `revoked_at` (la fila queda para auditoría). `user_for_token(db, raw)` devuelve el usuario activo dueño del token (o `None` si no existe, está revocado o el usuario fue borrado) y registra `last_used_at`; actúa con los privilegios de ese usuario. No sirven para `/api` (que sigue pidiendo el JWT del login).
 - Reglas de usuarios: solo un super usuario (`ALL`) puede asignar perfiles con `ALL` o modificar/borrar a otro super usuario. Usuarios borrados (`deleted=1`) no pueden iniciar sesión ni reutilizar su login. El login responde el mismo 401 para usuario inexistente o clave errónea.
 
 ### Capas
