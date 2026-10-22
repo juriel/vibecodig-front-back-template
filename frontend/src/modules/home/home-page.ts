@@ -52,7 +52,7 @@ export class HomePage extends LitElement {
           ${user ? I18n.t('home.hello_user', user.name ?? user.login) : I18n.t('home.welcome')}
         </h1>
       </header>
-      <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="mt-14 grid gap-4 xl:mt-20 sm:grid-cols-2 xl:grid-cols-4">
         ${quick.map((t, i) => this.tile(t, i === 0))}
       </div>`;
   }

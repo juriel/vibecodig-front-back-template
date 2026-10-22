@@ -14,7 +14,7 @@ Rutas relativas a `frontend/src/`.
 | Menú lateral / barra superior | `shell/app-sidebar.ts`, `shell/app-header.ts` | menú del usuario: «Mi cuenta» y «Cerrar sesión» |
 | Inicio | `modules/home/home-page.ts` | saludo gigante con una entrada animada; `QUICK` = 8 secciones de creación, la primera destacada en `brand` |
 | Mi cuenta | `modules/account/account-page.ts` | datos, apariencia (tarjetas de tema de tamaño fijo), colores (estilos + propios), idioma, contraseña |
-| Login | `modules/login/login-page.ts` | título «Crea y edita / tu sitio» en dos líneas + cursor que hace clic con onda; formulario en tarjeta |
+| Login | `modules/login/login-page.ts` | panel izquierdo = video de demostración (`web/assets/video/panel-demo.mp4`, Remotion `CmsDemo` en ~/Documents/video-promo; mudo, en bucle, quieto con reduced-motion); formulario en tarjeta |
 | Avisos y confirmaciones | `lib/toast.ts` | `toast(msg, 'success' \| 'error')`, `confirmDialog()` |
 
 ## Edición de páginas

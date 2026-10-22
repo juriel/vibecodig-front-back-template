@@ -41,63 +41,19 @@ export class LoginPage extends LitElement {
     }
   }
 
-  /** A cursor that glides somewhere on the left side and clicks, leaving a ripple. Off with reduced motion. */
-  private static RIPPLE_COLORS = ['var(--color-brand-500)', 'var(--color-accent-500)'];
-  private cursorTimer = 0;
-
+  /** The demo video plays on its own (muted, in a loop), except with reduced motion: then it stays on its first frame. */
   firstUpdated() {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const stage = this.querySelector<HTMLElement>('.login-stage');
-    if (stage) this.moveCursor(stage);
-  }
-
-  disconnectedCallback() {
-    clearTimeout(this.cursorTimer);
-    super.disconnectedCallback();
-  }
-
-  /** The cursor glides to a random spot, clicks (ripple in one of the user's colors) and goes on to the next one. */
-  private moveCursor(stage: HTMLElement) {
-    const cursor = this.querySelector<HTMLElement>('.login-cursor');
-    if (!cursor) return;
-    const go = () => {
-      const tx = 40 + Math.random() * (stage.clientWidth - 120), ty = 160 + Math.random() * (stage.clientHeight - 260);
-      cursor.style.transform = `translate(${tx}px, ${ty}px)`;
-      this.cursorTimer = window.setTimeout(() => {
-        cursor.classList.add('clicking');
-        this.ripple(stage, tx + 4, ty + 4);
-        window.setTimeout(() => cursor.classList.remove('clicking'), 180);
-        this.cursorTimer = window.setTimeout(go, 1600);
-      }, 1500);
-    };
-    this.cursorTimer = window.setTimeout(go, 600);
-  }
-
-  private ripple(stage: HTMLElement, x: number, y: number) {
-    const colors = LoginPage.RIPPLE_COLORS;
-    const r = document.createElement('span');
-    r.className = 'login-ripple';
-    r.style.cssText = `left:${x}px;top:${y}px;--c:${colors[Math.floor(Math.random() * colors.length)]}`;
-    stage.appendChild(r);
-    r.addEventListener('animationend', () => r.remove());
+    const video = this.querySelector<HTMLVideoElement>('.login-video');
+    if (video && !matchMedia('(prefers-reduced-motion: reduce)').matches) video.play().catch(() => {});
   }
 
   render() {
-    const name = GlobalConfig.getInstance().appName;
     return html`
       <div class="grid min-h-screen bg-ink lg:grid-cols-[1.15fr_1fr]">
-        <div class="relative hidden overflow-hidden border-r border-slate-200 p-12 lg:flex lg:flex-col lg:justify-between">
-          <div class="login-stage pointer-events-none absolute inset-0" aria-hidden="true">
-            <svg class="login-cursor absolute left-0 top-0 size-8" viewBox="0 0 24 24"><path d="M5 3l14 8-6 1.6L10 19z" fill="#0f172a" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
-          </div>
-          <div class="relative z-10 flex items-center gap-3">
-            <span class="flex size-10 items-center justify-center rounded-full bg-accent-500 font-display text-xl font-bold text-on-accent">${name.charAt(0)}</span>
-            <span class="font-display text-2xl font-semibold tracking-wide text-slate-900">${name}</span>
-          </div>
-          <h2 class="relative z-10 font-display text-7xl font-bold uppercase leading-[0.88] tracking-tight text-brand-600 2xl:text-8xl">
-            ${I18n.t('login.brand_title').split('|').map(line => html`<span class="block">${line}</span>`)}
-          </h2>
-          <p class="relative z-10 text-xs text-slate-400">© ${new Date().getFullYear()} ${name}</p>
+        <div class="relative hidden overflow-hidden border-r border-slate-200 bg-[#f1f5f9] lg:block">
+          <!-- How the panel works: made with Remotion in ~/Documents/video-promo (composition CmsDemo) -->
+          <video class="login-video absolute inset-0 size-full object-cover" src="/assets/video/panel-demo.mp4"
+                 muted loop playsinline preload="auto" aria-hidden="true"></video>
         </div>
 
         <div class="relative flex items-center justify-center px-6 py-12">

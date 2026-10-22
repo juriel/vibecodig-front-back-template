@@ -27,7 +27,7 @@ Salieron de sus pedidos y correcciones; respétalas aunque otra guía diga lo co
 - **Tablas TitiCMS modernas**: encabezado naranja, filas alternadas, acciones de color (ver = principal, editar = verde `#16a34a`, eliminar = **rojo** `#dc2626`), paginación clásica con movimiento.
 - **Letras**: Onest para la interfaz; Barlow Condensed (`font-display`) solo para títulos grandes. Sin etiquetas en MAYÚSCULAS espaciadas, sin «·» entre metadatos, sin flechas «→» pegadas a textos.
 - **Textos** en español claro, desde el punto de vista de quien usa el panel ("Sube imágenes y PDF", no "media manager"). Todo pasa por i18n (`es` y `en`).
-- **Movimiento** solo con propósito: una entrada por pantalla y respuestas a acciones. Respeta `prefers-reduced-motion`. En el login, solo el cursor que hace clic (el usuario rechazó esferas, pincel tipo DVD e ilustraciones armándose).
+- **Movimiento** solo con propósito: una entrada por pantalla y respuestas a acciones. Respeta `prefers-reduced-motion`. En el login, solo el video de demostración del panel (el usuario rechazó esferas, pincel tipo DVD, ilustraciones armándose y luego el cursor que hacía clic).
 - **Legibilidad primero**: contraste ≥ 4.5 en textos; `lib/theme.ts` ya calcula texto blanco u oscuro sobre cada color y una versión legible del color cuando se usa como texto.
 
 ## Para crear una pantalla nueva en este estilo

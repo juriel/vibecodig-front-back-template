@@ -8,9 +8,9 @@ await p.evaluateOnNewDocument(() => { Object.defineProperty(navigator, 'language
 await p.setViewport({ width: 1366, height: 768 });
 await p.goto(B + '/admin/login', { waitUntil: 'networkidle0' });
 check('sin esferas ni pincel tipo DVD', !(await p.$('.login-orb, .dvd-brush, .login-art')));
-const c1 = await p.$eval('.login-cursor', e => getComputedStyle(e).transform); await wait(3500);
-const c2 = await p.$eval('.login-cursor', e => getComputedStyle(e).transform);
-check('el cursor se desplaza y hace clic', c1 !== c2 && (await p.$$('.login-ripple')).length >= 0, `${c1} → ${c2}`);
+const t1 = await p.$eval('.login-video', v => v.currentTime); await wait(1500);
+const [t2, vw, muted] = await p.$eval('.login-video', v => [v.currentTime, v.videoWidth, v.muted]);
+check('el video de demostración carga y se reproduce en silencio', vw > 0 && t2 > t1 && muted, `${t1} → ${t2}, ancho ${vw}`);
 await p.screenshot({ path: `${process.env.OUT ?? 'out'}/login.png` });
 const [sh, ih] = await p.evaluate(() => [document.scrollingElement.scrollHeight, innerHeight]); check('login sin scroll', sh <= ih);
 await p.type('input[name=login]', 'zz_test_a'); await p.type('input[type=password]', PW); await p.keyboard.press('Enter'); await wait(1500);
