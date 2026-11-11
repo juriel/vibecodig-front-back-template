@@ -1,13 +1,12 @@
-> **Copia del kit de marca.** La fuente es `~/Documents/nexvia-marca/` en el PC de Jhonny: si cambia algo, se cambia allá y se vuelve a copiar a cada proyecto (smsconsole, SMPP Client Lab, Nexvia-Bot, CMS). Las rutas de este archivo (`logos/oficial/`, `fuentes/`, `nexvia-tokens.css`) son relativas a esta carpeta `marca/`. El script para regenerar logos (`herramientas/`) y los PDF de la propuesta están solo en la carpeta original.
-
 # Marca NEXVIA — referencia única
 
 Este archivo es la referencia para **todo lo visual de NEXVIA**: smsconsole (consola de clientes y panel del equipo), Nexvia-Bot / Chabito, SMPP Client Lab, el sitio web, el CMS, los videos, los correos, los reportes y cualquier página, panel o función nueva.
 
 - **Origen:** `NEXVIA - Marca - propuesta.pdf`, que la jefa aprobó, y `NEXVIA - Marca - anexo detallado.pdf`, que trae el detalle. Los dos están en esta misma carpeta.
 - **Valores para el código:** `nexvia-tokens.css` (variables CSS) y `tailwind.nexvia.js` (preset de Tailwind), también en esta carpeta.
+- **Componentes y movimiento aprobados:** `nexvia-componentes.css` y la **sección 11** (cómo se aplicó en cada proyecto el 2026-11-11).
 - **Kit listo para usar:** logos en `logos/oficial/` y fuentes web en `fuentes/`. El índice y los fragmentos para copiar están en la **sección 10**.
-- **Versión 1:** 10 de noviembre de 2026.
+- **Versión 1:** 10 de noviembre de 2026. **Versión 1.1:** 11 de noviembre de 2026 (sección 11).
 
 > **Si este archivo y el código chocan, manda este archivo para lo nuevo.**
 > Lo que ya existe se migra por fases y solo cuando se pida (ver la sección 9). No cambies colores ni letras de pantallas existentes por iniciativa propia.
@@ -314,6 +313,8 @@ Todo está en `~/Documents/nexvia-marca/`. Para un proyecto nuevo **se copian so
 | `favicon/favicon.ico` | 16, 32 y 48 px en un solo archivo |
 | `favicon/favicon.svg` | Favicon vectorial (versión chica, Noche) |
 | `favicon/favicon-32.png`, `apple-touch-icon.png` (180), `icon-192.png`, `icon-512.png` | Para el `<head>` y el manifest |
+| `favicon/favicon-avion.svg`, `favicon-avion-32.png`, `favicon-avion-180.png` | **Ícono de pestaña en uso (2026-11-11):** el avión bicolor sin fondo y sin los tres puntos, en un cuadro transparente. Lo eligió el usuario para la consola, el Lab, el sitio y el monitoreo; en cada proyecto se copia como `favicon.svg` / `favicon-32.png` |
+| `favicon/favicon-avion-admin.svg`, `favicon-avion-admin-32.png` | **Ícono de pestaña de administración (2026-11-11):** el mismo avión con el ala de arriba en Coral y la de abajo en Petróleo, para distinguir de un vistazo la pestaña de administración (`/admin`) de la de clientes. La consola lo cambia sola según la ruta (`router.ts`, `updateTabIcon`) |
 
 **Foto de perfil** de WhatsApp (Chabito), Google o redes: `png/app/nexvia-app-noche-1024.png` o `nexvia-app-senal-1024.png`.
 
@@ -381,3 +382,64 @@ python3 -m venv /tmp/nx && /tmp/nx/bin/pip install fonttools uharfbuzz cairosvg 
 ```
 - Para otro tamaño de PNG basta con agregarlo en `ANCHOS` dentro del script, o exportarlo desde el SVG con `cairosvg`.
 - `logos/oficial/vista-previa.png` muestra todas las variantes sobre su fondo.
+
+---
+
+## 11. Cómo se aplica (decisiones del usuario, 2026-11-11)
+
+Se aplicó la marca en SMPP Client Lab, la consola (clientes, administración y NOC), el sitio, los videos, el monitoreo y los documentos del bot. Esto es lo que el usuario aprobó al verlo en pantalla; **manda sobre las secciones anteriores cuando choquen**. Los componentes están listos en **`nexvia-componentes.css`** (en esta carpeta).
+
+### Color: más Señal y Menta, menos Petróleo de fondo
+- El usuario encontró "demasiado oscuro" usar Petróleo como fondo grande y "pálido, muerto" lo que solo tenía blanco y gris. El equilibrio aprobado:
+  - **Petróleo** solo en botones con texto blanco y en texto de enlace.
+  - **Señal** en fondos suaves, bordes, anillos de foco, selección activa y tintes (`/10`, `/15`…).
+  - **Señal → Menta** en degradado para franjas, círculos de pasos, íconos destacados y barras superiores de tarjetas.
+  - **Nunca** fondo Petróleo con texto oscuro (no se lee).
+- **Franja de título** (`.nx-band`): degradado Señal → Menta, texto Noche, radio 24 px, sombra Señal. Va en el encabezado de cada pantalla (título, subtítulo e ícono en un recuadro Noche al 12 %). Variante compacta para barras con buscador (`.nx-band-compact`). Es el estilo del panel Chatbot de la consola y el usuario lo quiere en clientes, administración, NOC, Correo, monitoreo y sitio.
+- **Pestañas y selección**: activa en Señal con texto Noche, sobre fondo Bruma con borde Señal.
+- **Tarjetas**: blanco, borde Señal al 28 %, radio 20 px. Las destacadas llevan una franja superior Señal → Menta de 4 px; al pasar el mouse suben 2–3 px con sombra Señal.
+- **Íconos de servicios** con degradados distintos de la marca (Señal → Petróleo, Menta → Señal, Petróleo → Noche, Señal → Menta) y botones de "Más información" de colores variados (Bruma, Menta suave, Noche, Señal).
+- **Chips de datos técnicos** (códigos, contadores, DLR): **gris** (`#EBF1F5` con texto `#2F4859`). El usuario rechazó el verde ("aturde").
+- **Puntos de estado en monitoreo**: verde `#12B76A` y rojo `#E5383B` con halo, más vivos que los de estado normales, para verlos de lejos.
+- **Excepción aprobada:** el panel izquierdo del ingreso de la consola conserva el estilo anterior (degradado verde azulado `#1FB3A4 → #14A3A8 → #129A8C → #0E7A78` con texto blanco); al usuario le gustó más que la franja Señal → Menta.
+
+### Movimiento (el del SMPP Client Lab, en todo)
+El usuario quiere estas animaciones en la plataforma, el sitio y cualquier pieza nueva (están en `nexvia-componentes.css`):
+- cada pantalla entra deslizándose 10 px (`nx-view-in`, 0,35 s);
+- botones y pestañas se hunden al oprimir (`scale(.97)`) y cambian de color con transición de 0,15 s;
+- tarjetas con enlace suben al pasar el mouse;
+- rejillas y filas entran escalonadas (`nx-rows-in`);
+- diálogos y menús aparecen con un zoom pequeño;
+- curva `cubic-bezier(.16, 1, .3, 1)`; con "reducir movimiento" no se mueve nada.
+- Si la página ya tiene su propia animación al hacer scroll (el sitio, `animate-on-scroll`), no se le suma la entrada escalonada.
+
+### Logo e íconos de pestaña
+- Logo siempre en SVG (`horizontal-color` sobre claro, `negativo` sobre Noche, `sobre-senal` sobre Señal, `blanco` a una tinta). En Remotion, el componente `NexviaLogo` usa los trazos del archivo.
+- **Ícono de pestaña de clientes**: el avión sin fondo y sin puntos (`favicon/favicon-avion.svg`), ala de arriba `#2BBBA6`, abajo Petróleo.
+- **Ícono de pestaña de administración**: el mismo avión con el ala de arriba **Coral** y la de abajo Petróleo (`favicon/favicon-avion-admin.svg`). La consola lo cambia sola según la ruta `/admin`.
+- El `apple-touch-icon` sigue con fondo Noche (el iPhone pone negro a los transparentes).
+
+### Migrar un proyecto con Tailwind sin tocar cada pantalla
+- En `tailwind.config.js` se reemplazan las escalas que usan las vistas por las de la marca (así lo hizo la consola, `frontend/tailwind.config.js`): `slate/gray/zinc/stone/neutral` → neutros con tono de Noche (500 = `#637480`, 600 = `#4D5D68`, para que el texto secundario sea legible), `emerald/green/lime/teal` → éxito, `red/rose/pink/fuchsia` → error, `amber/yellow/orange` → aviso, `blue/sky/cyan/indigo/violet/purple` → Señal/Petróleo. Se agregan `senal`, `petroleo`, `noche`, `menta`, `bruma`, `papel`, `coral`.
+- `primary` = Petróleo (botones con texto blanco). Los tintes, bordes y anillos de `primary` se cambian a `senal` en las vistas.
+- Los colores escritos a mano (hex y `rgba`) se pasan con la tabla de equivalencias de la sección 5.
+
+### Letras
+- Sora en títulos y cifras (con `tabular-nums`), Manrope en todo lo demás, servidas desde el proyecto. Títulos en tipo oración: se retiraron las mayúsculas condensadas (Barlow) de todos los paneles.
+
+### Documentos que genera el bot
+- PDF: logo E arriba a la derecha, título Sora, línea Señal, tablas con encabezado Noche, cifras en Petróleo, estados con los colores del manual, pie "NEXVIA · nexvia.com.co". Excel: encabezado Noche.
+
+### Lo que no se toca
+- El panel del CMS conserva su propia identidad (TitiCMS); la marca es para el contenido del sitio y sus plantillas.
+- El video del CMS conserva su paleta.
+- Colores de otras marcas: el verde de WhatsApp en su botón y los colores de Google en su botón.
+- Colores de registros de tráfico (TX, RX, DLR) en las consolas técnicas.
+
+### Lista rápida para algo nuevo
+1. Copiar `nexvia-tokens.css`, `nexvia-componentes.css`, las fuentes y los SVG que se usen.
+2. Encabezado de cada pantalla con `.nx-band`; pestañas `.nx-tabs`; tarjetas `.nx-card`.
+3. Botón principal Petróleo con texto blanco; todo lo demás de color en Señal y Menta.
+4. Animaciones del Lab; probar con "reducir movimiento".
+5. Favicon de clientes o de administración según la parte.
+6. Revisar en localhost con capturas antes de subir (el usuario valida y luego autoriza).
