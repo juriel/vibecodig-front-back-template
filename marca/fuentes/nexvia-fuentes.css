@@ -1,0 +1,17 @@
+/* NEXVIA — fuentes web servidas por nosotros (sin Google). Licencia SIL OFL (ver OFL-*.txt).
+   Copiar esta carpeta al proyecto (p. ej. /branding/fonts/) y ajustar la ruta de url() si cambia.
+   Son fuentes variables: un solo archivo cubre todos los pesos (Sora 100-800, Manrope 200-800). */
+@font-face {
+  font-family: 'Sora';
+  src: url('Sora-variable.woff2') format('woff2');
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Manrope';
+  src: url('Manrope-variable.woff2') format('woff2');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}

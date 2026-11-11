@@ -291,3 +291,6 @@ Skill del proyecto **`comtor-moderno`** (`.claude/skills/comtor-moderno/`): iden
 
 ## Mantenimiento
 Al cerrar un objetivo considerable: actualizar **Módulos**, **Endpoints** y **Estructura** de este archivo.
+
+## Marca NEXVIA
+El panel del CMS (evolución de TitiCMS) conserva su propia identidad: **no** le apliques la marca NEXVIA. El kit en `marca/` (empieza por `marca/MARCA-NEXVIA.md`) es para las plantillas con las que se hace el contenido de NEXVIA: páginas, layouts, widgets y CSS del sitio nexvia.com.co, publicaciones e imágenes de marketing para redes, plantillas de marca, historias de clientes y demás piezas. Usa logo E desde `marca/logos/oficial/`, colores con `marca/nexvia-tokens.css`, letras Sora y Manrope desde `marca/fuentes/`. Nunca escribas "nexvia" con una fuente para hacer el logo. Lo que ya existe se migra solo cuando se pida.
